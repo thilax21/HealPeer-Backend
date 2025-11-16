@@ -51,13 +51,13 @@
 // router.get("/history", protect, adminOnly, getPaymentHistory);
 
 // export default router;
-import express from "express";
-import { protect, adminOnly } from "../middlewares/authMiddleware.js";
-import { createAdminCheckoutSession } from "../controllers/payoutController.js";
+// import express from "express";
+// import { protect, adminOnly } from "../middlewares/authMiddleware.js";
+// import { createAdminCheckoutSession } from "../controllers/payoutController.js";
 
-const router = express.Router();
+// const router = express.Router();
 
-// Admin creates Stripe checkout page for counselor payout
-router.post("/admin-checkout-session", protect, adminOnly, createAdminCheckoutSession);
+// // Admin creates Stripe checkout page for counselor payout
+// router.post("/admin-checkout-session", protect, adminOnly, createAdminCheckoutSession);
 
-export default router;
+// export default router;

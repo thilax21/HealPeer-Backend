@@ -133,45 +133,45 @@
 //     res.status(500).json({ success: false, message: error.message });
 //   }
 // };
-import Stripe from "stripe";
-import Counselor from "../models/User.js";
+// import Stripe from "stripe";
+// import Counselor from "../models/User.js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const createAdminCheckoutSession = async (req, res) => {
-  try {
-    const { counselorId, amount } = req.body;
+// export const createAdminCheckoutSession = async (req, res) => {
+//   try {
+//     const { counselorId, amount } = req.body;
 
-    const counselor = await Counselor.findById(counselorId);
-    if (!counselor || !counselor.stripeAccountId) {
-      return res.status(400).json({ success: false, message: "Counselor Stripe account not connected" });
-    }
+//     const counselor = await Counselor.findById(counselorId);
+//     if (!counselor || !counselor.stripeAccountId) {
+//       return res.status(400).json({ success: false, message: "Counselor Stripe account not connected" });
+//     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: "Monthly Counselor Payout" },
-            unit_amount: amount * 100,
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      payment_intent_data: {
-        transfer_data: {
-          destination: counselor.stripeAccountId,
-        },
-      },
-      success_url: `${process.env.FRONTEND_URL}/admin-payout-success`,
-      cancel_url: `${process.env.FRONTEND_URL}/admin-payout-cancel`,
-    });
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items: [
+//         {
+//           price_data: {
+//             currency: "usd",
+//             product_data: { name: "Monthly Counselor Payout" },
+//             unit_amount: amount * 100,
+//           },
+//           quantity: 1,
+//         },
+//       ],
+//       mode: "payment",
+//       payment_intent_data: {
+//         transfer_data: {
+//           destination: counselor.stripeAccountId,
+//         },
+//       },
+//       success_url: `${process.env.FRONTEND_URL}/admin-payout-success`,
+//       cancel_url: `${process.env.FRONTEND_URL}/admin-payout-cancel`,
+//     });
 
-    res.status(200).json({ success: true, url: session.url });
-  } catch (error) {
-    console.error("Stripe Checkout error:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+//     res.status(200).json({ success: true, url: session.url });
+//   } catch (error) {
+//     console.error("Stripe Checkout error:", error);
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };

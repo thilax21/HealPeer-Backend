@@ -83,3 +83,22 @@ export const getAllBlogsAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ✅ Like a blog (no unlike)
+export const likeBlog = async (req, res) => {
+  try {
+    const blog = await Blog.findById(req.params.id);
+    if (!blog) return res.status(404).json({ message: "Blog not found" });
+
+    const userId = req.user._id.toString();
+    // Prevent duplicate likes
+    if (!blog.likes?.includes(userId)) {
+      blog.likes = [...(blog.likes || []), userId];
+      await blog.save();
+    }
+
+    res.status(200).json({ success: true, data: blog });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

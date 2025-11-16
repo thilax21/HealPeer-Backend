@@ -6,7 +6,8 @@ import {
   getMyBlogs,
   updateBlog,
   deleteBlog,
-  getAllBlogsAdmin
+  getAllBlogsAdmin,
+  likeBlog
 } from "../controllers/blogController.js";
 import multer from "multer";
 const router = express.Router();
@@ -30,5 +31,6 @@ router.delete("/:id", protect, deleteBlog);
 // Admin – view all blogs
 router.get("/admin/all", protect, getAllBlogsAdmin);
 
+router.post("/:id/like", protect, likeBlog);
 export default router;
 

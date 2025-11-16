@@ -22,6 +22,10 @@ export const signup = async (req, res) => {
       token: generateToken(user),
       user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
+    
+    if (role === "counselor") {
+      userData.status = "pending";
+    }
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }

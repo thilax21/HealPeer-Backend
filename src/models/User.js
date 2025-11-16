@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ["client", "counselor", "admin"], default: "client" },
   isApproved: { type: Boolean, default: false },
-  status: { type: String, enum: ["pending", "active"], default: "active" }, // for counselor approval
+  status: { type: String, enum: ["pending", "active"], default: "pending" }, // for counselor approval
   avatar: { type: String },
 
   // Profile info

@@ -17,7 +17,7 @@ connectDB();
 
 const app = express();
 app.use(cors({
-  origin: "http://localhost:5176",  // your frontend
+  origin:  "*",  // your frontend
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -41,5 +41,5 @@ app.get("/", (req, res) => {
 });
 
 
-const PORT = process.env.PORT || 5011;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

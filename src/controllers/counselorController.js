@@ -137,7 +137,7 @@ export const getAllActiveCounselors = async (req, res) => {
 // get all counselor by id
 export const getCounselorById = async (req, res) => {
   try {
-    const counselor = await Counselor.findById(req.params.id);
+    const counselor = await User.findById(req.params.id).select("-password");
     if (!counselor) return res.status(404).json({ success: false, message: "Counselor not found" });
     res.json({ success: true, data: counselor });
   } catch (err) {
