@@ -1,16 +1,31 @@
 import express from "express";
 import { protect } from "../middlewares/authMiddleware.js";
-import { getMe, updateMe } from "../controllers/userController.js";
-import { getAllCounselors, getUserProfile } from "../controllers/userController.js";
+import multer from "multer";
+import { 
+  getAllCounselors, 
+  getUserProfile, 
+  updateProfile, 
+  getUserById 
+} from "../controllers/userController.js";
 
 const router = express.Router();
+// Multer for profile image uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, "uploads/"),
+    filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+  });
+  const upload = multer({ storage });
 
-router.get("/me", protect, getMe);
-router.put("/me", protect, updateMe);
-// All approved counselors
+// Get own profile (client/counselor)
+router.get("/profile", protect, getUserProfile);
+
+// Update profile (client/counselor)
+router.put("/update-profile/:id", protect, upload.single("profileImage"), updateProfile);
+
+// Get all counselors (public)
 router.get("/counselors", getAllCounselors);
 
-// Individual user profile
-router.get("/:id", protect, getUserProfile);
+// Get user by ID (optional, admin maybe)
+router.get("/:id", protect, getUserById);
 
 export default router;

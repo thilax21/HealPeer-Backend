@@ -1,19 +1,48 @@
+// import express from "express";
+// import { signup, login } from "../controllers/authController.js";
+// import { forgotPassword, resetPassword } from "../controllers/authController.js";
+
+// const router = express.Router();
+
+// // Signup
+// router.post("/signup", signup);
+
+// // Login
+// router.post("/login", login);
+
+// // Forgot Password
+// router.post("/forgot-password", forgotPassword);
+
+// // Reset Password
+// router.post("/reset-password", resetPassword);
+
+// export default router;
 import express from "express";
-import { signup, login } from "../controllers/authController.js";
-import { forgotPassword, resetPassword } from "../controllers/authController.js";
+import { signup, login, forgotPassword, resetPassword } from "../controllers/authController.js";
+import multer from "multer";
 
 const router = express.Router();
 
-// Signup
-router.post("/signup", signup);
+// Setup multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // make sure uploads folder exists
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  },
+});
+const upload = multer({ storage });
+
+// Signup route with optional profileImage upload
+router.post("/signup", upload.single("profileImage"), signup);
 
 // Login
 router.post("/login", login);
 
-// Forgot Password
+// Forgot/Reset Password
 router.post("/forgot-password", forgotPassword);
-
-// Reset Password
 router.post("/reset-password", resetPassword);
 
 export default router;

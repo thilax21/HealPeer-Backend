@@ -1,20 +1,28 @@
+
 // import User from "../models/User.js";
 
-// // Counselor sends request
+// // Counselor sends approval request
 // export const requestCounselor = async (req, res) => {
 //   try {
-//     req.user.counselorRequest = "pending";
-//     await req.user.save();
-//     res.json({ success: true, message: "Request sent to admin" });
+//     const user = await User.findById(req.user._id);
+//     if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+//     user.status = "pending";
+//     await user.save();
+
+//     res.json({ success: true, message: "Counselor request sent to admin" });
 //   } catch (err) {
 //     res.status(500).json({ success: false, message: err.message });
 //   }
 // };
 
-// // Get all pending counselor requests (admin only)
+// // Get all pending counselor requests (Admin only)
 // export const getPendingCounselors = async (req, res) => {
 //   try {
-//     const pendingCounselors = await User.find({ role: "counselor", status: "pending" }).select("-password");
+//     const pendingCounselors = await User.find({
+//       role: "counselor",
+//       status: "pending",
+//     }).select("-password");
 //     res.status(200).json({ success: true, data: pendingCounselors });
 //   } catch (error) {
 //     res.status(500).json({ success: false, message: error.message });
@@ -25,12 +33,17 @@
 // export const approveCounselor = async (req, res) => {
 //   try {
 //     const counselor = await User.findById(req.params.id);
-//     if (!counselor) return res.status(404).json({ message: "Counselor not found" });
+//     if (!counselor)
+//       return res.status(404).json({ success: false, message: "Counselor not found" });
 
 //     counselor.status = "active";
 //     await counselor.save();
 
-//     res.status(200).json({ success: true, message: "Counselor approved", data: counselor });
+//     res.status(200).json({
+//       success: true,
+//       message: "Counselor approved successfully",
+//       data: counselor,
+//     });
 //   } catch (error) {
 //     res.status(500).json({ success: false, message: error.message });
 //   }
@@ -40,55 +53,116 @@
 // export const rejectCounselor = async (req, res) => {
 //   try {
 //     const counselor = await User.findById(req.params.id);
-//     if (!counselor) return res.status(404).json({ message: "Counselor not found" });
+//     if (!counselor)
+//       return res.status(404).json({ success: false, message: "Counselor not found" });
 
-//     counselor.status = "pending"; // or delete counselor if desired
+//     counselor.status = "rejected";
 //     await counselor.save();
 
-//     res.status(200).json({ success: true, message: "Counselor rejected", data: counselor });
+//     res.status(200).json({
+//       success: true,
+//       message: "Counselor rejected successfully",
+//       data: counselor,
+//     });
 //   } catch (error) {
 //     res.status(500).json({ success: false, message: error.message });
 //   }
 // };
-import User from "../models/User.js";
 
-// Counselor sends approval request
+// // Public route: list of all approved counselors
+// export const getAllActiveCounselors = async (req, res) => {
+//   try {
+//     const counselors = await User.find({
+//       role: "counselor",
+//       status: "active",
+//     }).select("-password");
+
+//     res.status(200).json({ success: true, data: counselors });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// // get all counselor by id
+// export const getCounselorById = async (req, res) => {
+//   try {
+//     const counselor = await User.findById(req.params.id).select("-password");
+//     if (!counselor) return res.status(404).json({ success: false, message: "Counselor not found" });
+//     res.json({ success: true, data: counselor });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+import User from "../models/User.js";
+import { sendEmail } from "../utils/sendEmail.js";
+
+// User requests counselor approval
 export const requestCounselor = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    if (!user)
+      return res.status(404).json({ success: false, message: "User not found" });
 
     user.status = "pending";
-    await user.save();
+    user.role = "counselor";
+    user.isApproved = false;
 
+    await user.save();
+    
+      // Send email to counselor
+    //   try {
+    //     await sendEmail(
+    //       user.email,
+    //       "Counselor Registration Pending",
+    //       `Hi ${user.name},\n\nYour counselor registration is now pending admin approval. We will notify you once approved.\n\nThank you,\nHealPeer Team`
+    //     );
+    // } catch (emailErr) {
+    //   console.error("Failed to send pending email:", emailErr);
+    // }
     res.json({ success: true, message: "Counselor request sent to admin" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Get all pending counselor requests (Admin only)
+// ADMIN — get pending counselors
 export const getPendingCounselors = async (req, res) => {
   try {
     const pendingCounselors = await User.find({
       role: "counselor",
       status: "pending",
     }).select("-password");
+
     res.status(200).json({ success: true, data: pendingCounselors });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// Approve counselor
+// ADMIN — Approve
 export const approveCounselor = async (req, res) => {
   try {
     const counselor = await User.findById(req.params.id);
+
     if (!counselor)
       return res.status(404).json({ success: false, message: "Counselor not found" });
 
     counselor.status = "active";
+    counselor.isApproved = true;
+
     await counselor.save();
+
+    try {
+      await sendEmail(
+        counselor.email,
+        "Counselor Approved",
+        `Hi ${counselor.name},\n\nCongratulations! Your counselor account has been approved. You can now start conducting sessions.\n\nBest regards,\nHealPeer Team`
+      );
+    } catch (emailErr) {
+      console.error("Failed to send approval email:", emailErr);
+    }
 
     res.status(200).json({
       success: true,
@@ -100,15 +174,28 @@ export const approveCounselor = async (req, res) => {
   }
 };
 
-// Reject counselor
+// ADMIN — Reject
 export const rejectCounselor = async (req, res) => {
   try {
     const counselor = await User.findById(req.params.id);
+
     if (!counselor)
       return res.status(404).json({ success: false, message: "Counselor not found" });
 
     counselor.status = "rejected";
+    counselor.isApproved = false;
+
     await counselor.save();
+
+    try {
+      await sendEmail(
+        counselor.email,
+        "Counselor Registration Rejected",
+        `Hi ${counselor.name},\n\nWe’re sorry to inform you that your counselor registration has been rejected by the admin.\n\nThank you,\nHealPeer Team`
+      );
+    } catch (emailErr) {
+      console.error("Failed to send rejection email:", emailErr);
+    }
 
     res.status(200).json({
       success: true,
@@ -120,7 +207,7 @@ export const rejectCounselor = async (req, res) => {
   }
 };
 
-// Public route: list of all approved counselors
+// PUBLIC — All active counselors list
 export const getAllActiveCounselors = async (req, res) => {
   try {
     const counselors = await User.find({
@@ -134,13 +221,14 @@ export const getAllActiveCounselors = async (req, res) => {
   }
 };
 
-// get all counselor by id
+// Counselor by ID
 export const getCounselorById = async (req, res) => {
   try {
-    const counselor = await User.findById(req.params.id).select("-password");
-    if (!counselor) return res.status(404).json({ success: false, message: "Counselor not found" });
-    res.json({ success: true, data: counselor });
+    const counselor = await User.findById(req.params.id);
+    if (!counselor) return res.status(404).json({ message: "Counselor not found" });
+    res.json({ data: counselor });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
+

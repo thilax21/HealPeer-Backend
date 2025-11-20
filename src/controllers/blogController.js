@@ -3,20 +3,29 @@ import Blog from "../models/Blog.js";
 // ✅ Create Blog (client or counselor)
 export const createBlog = async (req, res) => {
   try {
-    const { title, content, image } = req.body;
-    
+    const { title, content } = req.body;
+    const image = req.file ? req.file.filename : null; // multer file
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    if (!title || !content) {
+      return res.status(400).json({ success: false, message: "Title and content required" });
+    }
+
     const blog = await Blog.create({
       author: req.user._id,
       title,
       content,
       image,
-      status: req.user.role === "admin" ? "approved" : "approved"
+      status: "approved", // or whatever logic
     });
+
     res.status(201).json({ success: true, data: blog });
   } catch (error) {
+    console.error("Blog creation error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // ✅ Get All Approved Blogs (Public)
 export const getAllBlogs = async (req, res) => {

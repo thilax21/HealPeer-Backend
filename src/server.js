@@ -11,6 +11,7 @@ import sessionRoutes from "./routes/sessionRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -29,11 +30,13 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/counselors", counselorRoutes);
 app.use("/api/blogs", blogRoutes);
-app.use("/api/sessions", sessionRoutes);
+app.use("/api/session", sessionRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/payment", paymentRoutes);
 
 app.use("/api/users", userRoutes);
+app.use("/api/auth/upload", uploadRoutes);
+app.use("/uploads", express.static("uploads"));
 
 // Test route
 app.get("/", (req, res) => {
