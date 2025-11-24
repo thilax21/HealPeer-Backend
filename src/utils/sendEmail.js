@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-export const sendEmail = async (to, subject, text) => {
+export const sendEmail = async (to, subject, text, attachmentPath= null) => {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
@@ -17,6 +17,14 @@ export const sendEmail = async (to, subject, text) => {
     text,
   };
   
+  if (attachmentPath) {
+    options.attachments = [
+      {
+        filename: "invoice.pdf",
+        path: attachmentPath,
+      },
+    ];
+  }
 
   await transporter.sendMail(mailOptions);
 };

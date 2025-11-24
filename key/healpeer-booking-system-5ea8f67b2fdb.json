@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "healpeer-booking-system",
+  "private_key_id": "5ea8f67b2fdb2dbbd3757ab87d15ffb948618a6f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCP15uNPjiwv6ha\n+REEKv/NkH9S88m8hsg/VoVpxPAM/i2ltyZJlyJLsNd8RWP0yA9wVd0fqi8ikjcE\nBHmTmUwuKyohqiK8znqp/fbiDdutPTXRBtUmGWeRy4aITwn5gARbCDMLGt/TcxYw\ncgieiBVUppk+kXKj91p0iLyoMEKA3ycz0X0b0mmoWZbDCzu0Xpp8gG6a8MsZn3oa\nUtlgRUOe2qfs4XhqL2Bmot+CSboHtfC6bZ7jcLBi+m5SIzvlEqD4uc8iy91vf5lT\ndp6IJxluN6S+CjuJxp9MESH1w9ir67xQ/VBH7J+ZcNrjGCUcBAXIhSmOrmXQ+lSX\ntCVn4DFrAgMBAAECggEAMpIp9Rl4EuP/C6TfT6jScHIp4X8mYOq+Ak6n7wy3HMpM\nQCPJCTxiaVwOFnnK76dajjMR3+0UT0I6p2XvXG4b82tnj5hiSCELzTIll0op/pkz\nj36od5Gc8QwuC0RGjHpujZavY2saYBvpJDUjRKExZqZ/4BiAxpbTLX9ZXIRDDU1g\nTgBMAridraDO/wRZcj7VEE+gjb0geYtYZQMyNfpppAzYn+OlKFY85aql5WfVbCPr\nqqrqpJp3fVoNZXrxvrHXIIXy5KIeFu+K40HyW+K3DHJwrnFDeWMfocnyxdyXgtR6\n941TuraXCBZL66W+fADLm1KdjgZr30/aGuiM/hJ7aQKBgQDH+0/94C8VcHLmWcb9\nDZLfd2pXHdvh74RsV0ctlM0IY2e522kpObEjmifz6zG8dLVfb6OeF/vQiOgTD5RO\nYTgoZvggMKgrui+OD2D2e2/KPotZFhneaekURSDQcfGPFsFNfRy3xN568ZTqVhVA\nzOcJfodYsNxOiXL0P9vODCz3RwKBgQC4IoiQMAU7PSxbX1RwWpiVuyMro6OdBBCc\nRiIiYGls1gaVLM9qiGsRrfEs8Ty8O5/aBuKy1ji1lspzh+KFi7luENbPqQJX2EsD\nSm48ETy80vi8OBa9pXmlrrbCVZjf6nkna1WLCMd7f/2VIhjx6Uf868gvrW8kDGmH\nT4905PpOvQKBgQDA8GFLoggrGhNw1HscWAU03mRVanRi9g//6vC8NEzgY++GK/64\njHWv0KHtPiP9G2iFjBMCi0ci+YNWKHjAaiGhMT8A55DIp1gMKiA1jf/b0x3kNGN+\n5xW9vbgcA2K3149l8GhNkH3JhdxTffwBSe85hL6WPgQ/LXMf3aB2md6kLwKBgDXh\nXQacFpvL/bPLBGFQEUAXH2aAnrquWtHvr8NRZOgFBK4YC6WHv5TPyje1a2lFJTRe\nOW3NQ5DXS+xcgctEJIFxifn/4YCk+OZAnFsVTCmQrlodK4JY7myt4Cqjc3VqHgOL\n498oNX8M574A2T3IXllDATP6UwBAZYzDmh3BdwEdAoGBAKJDeH/vfxWLofUxuy2t\nTDOPwuW8aX+gl8oDLhAEajc/vSJ2zlltLLJaLq40s5baj2REk7ofF5IANOL5ST6a\nVWmGtoVM4oxY86ObaEeQXtnRnRTSJ2A6KY9WFD38zi7gWyyM7aOmJAKaQVdzgtao\nLoHZ8heJrZLelrvK2ii7T0Na\n-----END PRIVATE KEY-----\n",
+  "client_email": "admin-37@healpeer-booking-system.iam.gserviceaccount.com",
+  "client_id": "103719744598747925102",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/admin-37%40healpeer-booking-system.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

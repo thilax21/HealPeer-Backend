@@ -15,6 +15,7 @@ const blogSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
   image: { type: String },
+  imageUrl: { type: String },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // ✅ likes
   status: { type: String, enum: ["pending", "approved"], default: "approved" },
 }, { timestamps: true });

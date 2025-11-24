@@ -16,6 +16,7 @@ export const createBlog = async (req, res) => {
       title,
       content,
       image,
+      imageUrl,
       status: "approved", // or whatever logic
     });
 
@@ -25,6 +26,7 @@ export const createBlog = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 
 // ✅ Get All Approved Blogs (Public)
@@ -50,6 +52,20 @@ export const getMyBlogs = async (req, res) => {
 };
 
 // ✅ Update Blog (Owner or Admin)
+// export const updateBlog = async (req, res) => {
+//   try {
+//     const blog = await Blog.findById(req.params.id);
+//     if (!blog) return res.status(404).json({ message: "Blog not found" });
+
+//     if (blog.author.toString() !== req.user._id.toString() && req.user.role !== "admin")
+//       return res.status(403).json({ message: "Not authorized" });
+
+//     const updated = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
+//     res.status(200).json({ success: true, data: updated });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
 export const updateBlog = async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id);
@@ -58,12 +74,25 @@ export const updateBlog = async (req, res) => {
     if (blog.author.toString() !== req.user._id.toString() && req.user.role !== "admin")
       return res.status(403).json({ message: "Not authorized" });
 
-    const updated = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updatedData = {
+      title: req.body.title || blog.title,
+      content: req.body.content || blog.content,
+    };
+
+    // If new image uploaded
+    if (req.file) {
+      updatedData.image = req.file.filename;
+      updatedData.imageUrl = `/uploads/${req.file.filename}`;
+    }
+
+    const updated = await Blog.findByIdAndUpdate(req.params.id, updatedData, { new: true });
+
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // ✅ Delete Blog (Owner or Admin)
 export const deleteBlog = async (req, res) => {

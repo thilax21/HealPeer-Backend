@@ -20,12 +20,12 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Public – all approved blogs
-router.get("/", getAllBlogs);
+router.get("/all", getAllBlogs);
 
 // Authenticated users
 router.post("/", protect,upload.single("image"), createBlog);
 router.get("/my-blogs", protect, getMyBlogs);
-router.put("/:id", protect, updateBlog);
+router.put("/:id", protect, upload.single("image"), updateBlog);
 router.delete("/:id", protect, deleteBlog);
 
 // Admin – view all blogs
