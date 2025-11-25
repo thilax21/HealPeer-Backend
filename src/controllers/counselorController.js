@@ -29,7 +29,7 @@ export const getPendingCounselors = async (req, res) => {
     const pendingCounselors = await User.find({
       isCounselorRequest: true,
       status: "pending",
-    }).select("-password");
+    }).select("-password name email phone qualifications experience  specialization  profilePicture");
 
     res.status(200).json({ success: true, data: pendingCounselors });
   } catch (error) {

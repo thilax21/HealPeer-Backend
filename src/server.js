@@ -10,12 +10,11 @@ import counselorRoutes from "./routes/counselorRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import uploadRoutes from "./routes/uploadRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js"
 import availabilityRoutes from "./routes/availabilityRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import path from "path";
-
+import chatRouter from "./routes/chat.js";
 import bodyParser from "body-parser";
 
 
@@ -58,10 +57,11 @@ app.use("/api/blogs", blogRoutes);
 
 app.use("/api/profile", profileRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/auth/upload", uploadRoutes);
-app.use("/uploads", express.static("uploads"));
+// app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
 
+app.use("/api/chat", chatRouter);
 
 app.use("/api/payment", paymentRoutes);
 
