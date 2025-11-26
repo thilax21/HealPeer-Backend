@@ -26,10 +26,12 @@ export const requestCounselor = async (req, res) => {
 // ADMIN — get pending counselors
 export const getPendingCounselors = async (req, res) => {
   try {
+    console.log("REQ.USER in getPendingCounselors:", req.user && { id: req.user._id, role: req.user.role });
+
     const pendingCounselors = await User.find({
       isCounselorRequest: true,
       status: "pending",
-    }).select("-password name email phone qualifications experience  specialization  profilePicture");
+    }).select("-password");
 
     res.status(200).json({ success: true, data: pendingCounselors });
   } catch (error) {

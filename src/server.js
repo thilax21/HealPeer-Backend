@@ -1,9 +1,11 @@
+
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
 import connectDB from "./config/db.js";
-
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 import authRoutes from "./routes/authRoutes.js"
 import counselorRoutes from "./routes/counselorRoutes.js";
@@ -16,11 +18,19 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import path from "path";
 import chatRouter from "./routes/chat.js";
 import bodyParser from "body-parser";
+import ChatMessage from "./models/ChatMessage.js";
 
 
 connectDB();
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 app.use(cors({
   origin:  "*",  // your frontend
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -70,11 +80,48 @@ app.use("/api/availability", availabilityRoutes);
 
 
 
+// Socket.io connection handling
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("join_room", (room) => {
+    socket.join(room);
+    console.log(`User ${socket.id} joined room ${room}`);
+  });
+
+  socket.on("send_message", async (data) => {
+    const { room, senderId, message } = data;
+    
+    // Save message to database
+    try {
+      const chatMessage = new ChatMessage({
+        room,
+        senderId,
+        message,
+        createdAt: new Date()
+      });
+      await chatMessage.save();
+      
+      // Send message to room
+      io.to(room).emit("receive_message", {
+        senderId,
+        message,
+        createdAt: chatMessage.createdAt
+      });
+    } catch (error) {
+      console.error("Error saving message:", error);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
 // Test route
 app.get("/", (req, res) => {
   res.send("HealPeer Backend Running");
 });
 
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

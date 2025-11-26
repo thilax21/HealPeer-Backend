@@ -1,28 +1,39 @@
-import Booking from "../models/Booking.js";
 import User from "../models/User.js";
-
-// /** Create a booking (pending) */
-// export const createBooking = async (req, res) => {
-//   try {
-//     const { counselorId, clientId, date, time, durationMin, amount, notes } = req.body;
-//     // basic validation omitted for brevity
-//     const booking = await Booking.create({
-//       counselorId, clientId, date, time, durationMin: durationMin || 60, amount, notes
-//     });
-//     res.json({ success: true, booking });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
+import Booking from "../models/Booking.js";
+import { sendBookingEmails } from "../utils/email.js";
+import { createCalendarEvent } from "../utils/googleCalendar.js";
 
 export const createBooking = async (req, res) => {
   try {
-    const { clientId, counselorId, date, time, durationMin, notes, amount } = req.body;
+    const { clientId, counselorId, date, time, durationMin, notes, amount, sessionType } = req.body;
+
+    // Fetch user details
+    const client = await User.findById(clientId);
+    const counselor = await User.findById(counselorId);
+    
+    if (!client || !counselor) {
+      return res.status(404).json({ success: false, message: "Client or counselor not found" });
+    }
+
+    // Generate dummy Google Meet link for both session types
+    const dummyMeetLink = `https://meet.google.com/dummy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Generate chat room ID for chat sessions
+    const chatRoom = sessionType === 'chat' ? `${counselorId}_${clientId}_${Date.now()}` : null;
 
     // 1️⃣ Create booking
-    const booking = new Booking({ clientId, counselorId, date, time, durationMin, notes, amount });
+    const booking = new Booking({ 
+      clientId, 
+      counselorId, 
+      date, 
+      time, 
+      durationMin, 
+      notes, 
+      amount, 
+      sessionType: sessionType || 'video',
+      meetLink: dummyMeetLink,
+      chatRoom
+    });
     await booking.save();
 
     // 2️⃣ Create Google Calendar event
@@ -38,28 +49,37 @@ export const createBooking = async (req, res) => {
         description,
         startDateTimeISO: startISO,
         endDateTimeISO: endISO,
-        attendees: [/* client email */, /* counselor email */]
+        attendees: [client.email, counselor.email]
       });
 
       booking.googleEventId = calendarRes.eventId;
-      booking.meetLink = calendarRes.meetLink || calendarRes.htmlLink || "";
+      // Keep the dummy meetLink for chat sessions, update for video sessions
+      if (sessionType === 'video') {
+        booking.meetLink = calendarRes.meetLink || calendarRes.htmlLink || dummyMeetLink;
+      }
       booking.calendarCreated = true;
 
       await booking.save();
 
-      // Optional: send pre-payment email
-      await sendBookingEmails({
-        clientEmail: booking.clientId.email,
-        clientName: booking.clientId.name,
-        counselorEmail: booking.counselorId.email,
-        counselorName: booking.counselorId.name,
-        meetLink: booking.meetLink,
-        booking,
-        prePayment: true
-      });
-
     } catch (err) {
       console.error("Calendar creation failed:", err);
+    }
+
+    // Send pre-payment email
+    try {
+      await sendBookingEmails({
+        clientEmail: client.email,
+        clientName: client.name,
+        counselorEmail: counselor.email,
+        counselorName: counselor.name,
+        meetLink: booking.meetLink,
+        booking,
+        prePayment: true,
+        sessionType: booking.sessionType,
+        chatRoom: booking.chatRoom
+      });
+    } catch (err) {
+      console.error("Email sending failed:", err);
     }
 
     res.status(201).json({ success: true, booking });
@@ -145,6 +165,3 @@ export const getBookingBySession = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
-

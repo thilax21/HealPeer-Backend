@@ -27,12 +27,14 @@ const bookingSchema = new mongoose.Schema({
   time: { type: String, required: true }, // e.g., "11:00"
   durationMin: { type: Number, default: 60 },
   notes: { type: String },
+  sessionType: { type: String, required: true, enum: ["chat", "video"], default: "video" }, // chat or video session
   status: { type: String, default: "pending" }, // pending / paid / completed
   amount: { type: Number, required: true },
   stripeSessionId: { type: String },
   googleEventId: { type: String },       // Google Calendar event ID
-  meetLink: { type: String },            // Google Meet link
+  meetLink: { type: String },            // Google Meet link (for both chat and video sessions)
   calendarCreated: { type: Boolean, default: false }, // flag if calendar event created
+  chatRoom: { type: String },           // Chat room identifier for chat sessions
 }, { timestamps: true });
 
 export default mongoose.model("Booking", bookingSchema);
