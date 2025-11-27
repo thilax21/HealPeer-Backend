@@ -1,10 +1,12 @@
 import express from "express";
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect , adminOnly } from "../middlewares/authMiddleware.js";
 import multer from "multer";
 import { 
   getAllCounselors, 
   getUserProfile, 
   updateProfile, 
+  getAllUsers,
+  getAllClients,
   getUserById 
 } from "../controllers/userController.js";
 
@@ -34,7 +36,13 @@ router.put("/update-profile/:id", protect, upload.single("profileImage"), update
 // Get all counselors (public)
 router.get("/counselors", getAllCounselors);
 
+router.get("/", getAllUsers);
+      // GET /api/users  → all users
+router.get("/clients" , getAllClients);
+
 // Get user by ID (optional, admin maybe)
 router.get("/:id", protect, getUserById);
+
+
 
 export default router;

@@ -79,3 +79,35 @@ export const getAllCounselors = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get All Users
+export const getAllUsers = async (req, res) => {
+  try {
+    // Fetch all users but exclude passwords
+    const users = await User.find().select("-password");
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ success: false, message: "No users found" });
+    }
+
+    res.status(200).json({ success: true, data: users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+// controllers/userController.js
+export const getAllClients = async (req, res) => {
+  try {
+    const clients = await User.find({ role: "client" }).select("-password");
+    res.status(200).json({
+      success: true,
+      data: clients,
+    });
+    console.log(res.data, "userController")
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

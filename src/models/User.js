@@ -92,6 +92,8 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["client", "counselor", "admin"], default: "client" },
 
     isApproved: { type: Boolean, default: false },
+    isCounselorRequest: { type: Boolean, default: false },
+
 
     status: { type: String, enum: ["pending", "active", "rejected"], default: "active" },
 

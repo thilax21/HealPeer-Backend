@@ -45,19 +45,6 @@ app.use(express.json({
   }
 }));
 
-const webhookApp = express();
-webhookApp.post("/webhook/stripe", bodyParser.raw({ type: "application/json" }), async (req, res) => {
-  // delegate to controller
-  // We need to import controller function here
-  const { stripeWebhook } = await import("./controllers/paymentController.js");
-  // attach rawBody to req for signature verification
-  req.rawBody = req.body;
-  // call handler
-  return stripeWebhook(req, res);
-});
-
-app.use("/api/payment", webhookApp);
-
 
 
 
@@ -123,5 +110,5 @@ app.get("/", (req, res) => {
   res.send("HealPeer Backend Running");
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

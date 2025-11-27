@@ -143,12 +143,6 @@ export const login = async (req, res) => {
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
-    
-    // ⬇️ VERY IMPORTANT — save token here
-    localStorage.setItem("token", data.token);
-
-    // save logged in user also
-    localStorage.setItem("user", JSON.stringify(data.user));
 
 
     res.status(200).json({

@@ -29,7 +29,8 @@ export const getPendingCounselors = async (req, res) => {
     console.log("REQ.USER in getPendingCounselors:", req.user && { id: req.user._id, role: req.user.role });
 
     const pendingCounselors = await User.find({
-      isCounselorRequest: true,
+      // isCounselorRequest: true,
+      role: "counselor",
       status: "pending",
     }).select("-password");
 
@@ -125,11 +126,15 @@ export const getAllActiveCounselors = async (req, res) => {
 // Counselor by ID
 export const getCounselorById = async (req, res) => {
   try {
-    const counselor = await User.findById(req.params.id);
-    if (!counselor) return res.status(404).json({ message: "Counselor not found" });
-    res.json({ data: counselor });
+    const counselor = await User.findOne({ 
+      _id: req.params.id, 
+      role: "counselor",
+      status: "active"
+    }).select("-password");
+    
+    if (!counselor) return res.status(404).json({ success: false, message: "Counselor not found" });
+    res.json({ success: true, data: counselor });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
