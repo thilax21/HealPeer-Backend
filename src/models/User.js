@@ -102,7 +102,7 @@ const userSchema = new mongoose.Schema(
     specialization: { type: String },
     experience: { type: String },
     contactNumber: { type: String },
-    pricePerSession: { type: Number, default: 20 },
+    pricePerSession: { type: Number, default: 1000 },
     timezone: { type: String, default: "Asia/Colombo" },
 
     // Optional cached summary for quick UI reads (keeps in sync on booking creation)

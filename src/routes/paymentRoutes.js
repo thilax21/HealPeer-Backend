@@ -1,16 +1,39 @@
+// import express from "express";
+// import { createCheckoutSession, stripeWebhook, getPaymentDetails } from "../controllers/paymentController.js";
+// const router = express.Router();
+
+// // Create checkout session
+// router.post("/session", createCheckoutSession);
+
+// // Get payment details by session ID
+// router.get("/details/:sessionId", getPaymentDetails);
+
+
+
+// export default router;
+
+
 import express from "express";
-import { createCheckoutSession, stripeWebhook } from "../controllers/paymentController.js";
+import {
+  createCheckoutSession,
+  stripeWebhook,
+  getPaymentDetails
+} from "../controllers/paymentController.js";
+
 const router = express.Router();
 
-
-
-router.post("/session", createCheckoutSession);
-
-
-
-// Stripe webhook route: must receive raw body, so we'll mount specially in app.js
-
+// -----------------------
+// STRIPE WEBHOOK (RAW BODY)
+// -----------------------
+// router.post("/webhook", express.json(), stripeWebhook);
 router.post("/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 
+
+// -----------------------
+// NORMAL JSON ROUTES
+// -----------------------
+router.post("/create-checkout-session", createCheckoutSession);
+
+router.get("/details/:sessionId", getPaymentDetails);
 
 export default router;

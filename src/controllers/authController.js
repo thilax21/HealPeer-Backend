@@ -12,50 +12,6 @@ const generateToken = (user) => {
 
 
 
-// export const signup = async (req, res) => {
-//   try {
-//     // multer handles file, other fields come in req.body
-//     const { name, email, password, role, bio, specialization, experience, contactNumber } = req.body;
-//     const profileImage = req.file ? `/uploads/${req.file.filename}` : null;
-
-//     if (!name || !email || !password) {
-//       return res.status(400).json({ message: "Name, email, and password are required" });
-//     }
-
-//     const userExists = await User.findOne({ email });
-//     if (userExists) return res.status(400).json({ message: "User already exists" });
-
-//     const userData = { name, email, password, role, bio, specialization, experience, contactNumber, profileImage };
-
-//     // Counselor default status
-//     if (role === "counselor") {
-//       userData.status = "pending";
-//       userData.isApproved = false;
-
-//     }
-
-//     const user = await User.create(userData);
-
-//     res.status(201).json({
-//       message: role === "counselor"
-//         ? "Counselor registered! Pending admin approval."
-//         : "User registered successfully.",
-//       user: {
-//         id: user._id,
-//         name: user.name,
-//         email: user.email,
-//         role: user.role,
-//         status: user.status,
-//         profileImage: user.profileImage
-//       },
-//       token: generateToken(user)
-//     });
-
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Server error", error: error.message });
-//   }
-// };
 
 export const signup = async (req, res) => {
   try {

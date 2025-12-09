@@ -28,13 +28,20 @@ const bookingSchema = new mongoose.Schema({
   durationMin: { type: Number, default: 60 },
   notes: { type: String },
   sessionType: { type: String, required: true, enum: ["chat", "video"], default: "video" }, // chat or video session
-  status: { type: String, default: "pending" }, // pending / paid / completed
+  roomId: { type: String }, // Stream room/channel ID
+  status: { type: String, default: "pending" }, // pending / paid / completed / cancelled
+  paymentStatus: { type: String, default: "pending", enum: ["pending", "completed", "failed", "refunded"] },
   amount: { type: Number, required: true },
+  paidAmount: { type: Number }, // Actual amount paid (in LKR)
+  currency: { type: String, default: "LKR" }, // Currency used for payment
+  paidAt: { type: Date }, // When payment was completed
   stripeSessionId: { type: String },
+  stripePaymentIntentId: { type: String }, // Stripe payment intent ID
   googleEventId: { type: String },       // Google Calendar event ID
-  meetLink: { type: String },            // Google Meet link (for both chat and video sessions)
+  meetLink: streamVideoLink,            // Stream Video URL  
   calendarCreated: { type: Boolean, default: false }, // flag if calendar event created
   chatRoom: { type: String },           // Chat room identifier for chat sessions
+  confirmedAt: { type: Date }, // When booking was confirmed after payment
 }, { timestamps: true });
 
 export default mongoose.model("Booking", bookingSchema);

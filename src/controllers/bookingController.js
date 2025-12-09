@@ -209,29 +209,129 @@
 //   }
 // };
 
+
+
+// CREATE BOOKING (pre-payment)
+// export const createBooking = async (req, res) => {
+//   try {
+//     const { clientId, counselorId, date, time, durationMin = 60, notes, amount, sessionType } = req.body;
+
+//     // Validate users
+//     const client = await User.findById(clientId);
+//     const counselor = await User.findById(counselorId);
+//     if (!client || !counselor)
+//       return res.status(404).json({ success: false, message: "Client or counselor not found" });
+
+//     // Generate links
+//     const dummyMeetLink = sessionType === "video" 
+//       ? `https://meet.google.com/dummy-${Date.now()}-${Math.random().toString(36).substring(2,9)}`
+//       : null;
+//     const chatRoom = sessionType === "chat" ? `${counselorId}_${clientId}` : null;
+
+//     // Create booking (pending until Stripe payment completes)
+//     const booking = new Booking({
+//       clientId,
+//       counselorId,
+//       date,
+//       time,
+//       durationMin,
+//       notes,
+//       amount: amount || 1000, // Default to Rs.1000 per counselor
+//       sessionType,
+//       meetLink: dummyMeetLink,
+//       chatRoom,
+//       status: "pending"
+//     });
+
+//     await booking.save();
+
+//     // Create Google Calendar event for video
+//     if (sessionType === "video") {
+//       try {
+//         const startISO = new Date(`${date}T${time}:00`).toISOString();
+//         const endISO = new Date(new Date(startISO).getTime() + durationMin * 60000).toISOString();
+
+//         const calendarRes = await createCalendarEvent({
+//           summary: "HealPeer Video Session",
+//           description: notes || "Video counseling session",
+//           startDateTimeISO: startISO,
+//           endDateTimeISO: endISO,
+//           attendees: [client.email, counselor.email]
+//         });
+
+//         booking.googleEventId = calendarRes.eventId;
+//         booking.meetLink = calendarRes.meetLink || calendarRes.htmlLink || dummyMeetLink;
+//         booking.calendarCreated = true;
+//         await booking.save();
+
+//       } catch (err) {
+//         console.error("Calendar creation failed:", err);
+//       }
+//     }
+
+//     // Pre-payment email
+//     try {
+//       await sendBookingEmails({
+//         clientEmail: client.email,
+//         clientName: client.name,
+//         counselorEmail: counselor.email,
+//         counselorName: counselor.name,
+//         meetLink: booking.meetLink,
+//         booking,
+//         prePayment: true,
+//         sessionType,
+//         chatRoom
+//       });
+//     } catch (err) {
+//       console.error("Email sending failed:", err);
+//     }
+
+//     res.status(201).json({ success: true, booking });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 import User from "../models/User.js";
 import Booking from "../models/Booking.js";
 import { sendBookingEmails } from "../utils/email.js";
-import { createCalendarEvent } from "../utils/googleCalendar.js";
+import { generateStreamToken } from "../lib/stream.js";
 
-// CREATE BOOKING (pre-payment)
+// CREATE BOOKING (pre-payment) with Stream Video Call
 export const createBooking = async (req, res) => {
   try {
-    const { clientId, counselorId, date, time, durationMin = 60, notes, amount, sessionType } = req.body;
+    const {
+      clientId,
+      counselorId,
+      date,
+      time,
+      durationMin = 60,
+      notes,
+      amount,
+      sessionType,
+    } = req.body;
 
-    // Validate users
+    // 1️⃣ Validate users
     const client = await User.findById(clientId);
     const counselor = await User.findById(counselorId);
     if (!client || !counselor)
       return res.status(404).json({ success: false, message: "Client or counselor not found" });
 
-    // Generate links
-    const dummyMeetLink = sessionType === "video" 
-      ? `https://meet.google.com/dummy-${Date.now()}-${Math.random().toString(36).substring(2,9)}`
-      : null;
-    const chatRoom = sessionType === "chat" ? `${counselorId}_${clientId}` : null;
+    // 2️⃣ Generate Stream Video Call link for video sessions
+    let meetLink = null;
+    let chatRoom = null;
 
-    // Create booking (pending until Stripe payment completes)
+    if (sessionType === "video") {
+      const streamRoomId = `${counselorId}_${clientId}_${Date.now()}`;
+      const token = generateStreamToken(clientId); // token for client, can generate for counselor too
+      meetLink = `${process.env.FRONTEND_URL}/call/${streamRoomId}?token=${token}`;
+    } else if (sessionType === "chat") {
+      chatRoom = `${counselorId}_${clientId}`;
+    }
+
+    // 3️⃣ Create booking (pending payment)
     const booking = new Booking({
       clientId,
       counselorId,
@@ -239,40 +339,16 @@ export const createBooking = async (req, res) => {
       time,
       durationMin,
       notes,
-      amount, // store dollars, Stripe will convert
+      amount: amount || 1000, // default LKR 1000
       sessionType,
-      meetLink: dummyMeetLink,
-      chatRoom,
-      status: "pending"
+      meetLink, // Stream Video Call URL or null
+      chatRoom, // chat room for chat sessions
+      status: "pending",
     });
 
     await booking.save();
 
-    // Create Google Calendar event for video
-    if (sessionType === "video") {
-      try {
-        const startISO = new Date(`${date}T${time}:00`).toISOString();
-        const endISO = new Date(new Date(startISO).getTime() + durationMin * 60000).toISOString();
-
-        const calendarRes = await createCalendarEvent({
-          summary: "HealPeer Video Session",
-          description: notes || "Video counseling session",
-          startDateTimeISO: startISO,
-          endDateTimeISO: endISO,
-          attendees: [client.email, counselor.email]
-        });
-
-        booking.googleEventId = calendarRes.eventId;
-        booking.meetLink = calendarRes.meetLink || calendarRes.htmlLink || dummyMeetLink;
-        booking.calendarCreated = true;
-        await booking.save();
-
-      } catch (err) {
-        console.error("Calendar creation failed:", err);
-      }
-    }
-
-    // Pre-payment email
+    // 4️⃣ Send pre-payment email
     try {
       await sendBookingEmails({
         clientEmail: client.email,
@@ -282,20 +358,21 @@ export const createBooking = async (req, res) => {
         meetLink: booking.meetLink,
         booking,
         prePayment: true,
-        sessionType,
-        chatRoom
+        sessionType: booking.sessionType,
+        chatRoom: booking.chatRoom,
       });
     } catch (err) {
       console.error("Email sending failed:", err);
     }
 
     res.status(201).json({ success: true, booking });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+
 
 // GET ALL BOOKINGS
 export const getAllBookings = async (req, res) => {
@@ -398,6 +475,26 @@ export const getActiveBookingsForChat = async (req, res) => {
     res.json({ success: true, bookings });
   } catch (err) {
     console.error("Error fetching active bookings:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// GET BOOKINGS BY COUNSELOR
+
+export const getCounselorBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({ counselorId: req.params.counselorId })
+      .populate("clientId", "name email")
+      .populate("counselorId", "name email")
+      .sort({ date: 1, time: 1 });
+
+    if (!bookings || bookings.length === 0)
+      return res.status(404).json({ success: false, message: "No bookings found" });
+
+    res.json({ success: true, bookings });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
