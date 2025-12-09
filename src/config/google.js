@@ -13,20 +13,20 @@
 // }
 
 // src/config/google.js
-import { google } from "googleapis";
+// import { google } from "googleapis";
 
-export const getGoogleCalendarClient = () => {
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  let privateKey = process.env.GOOGLE_PRIVATE_KEY;
-  if (!clientEmail || !privateKey) throw new Error("Missing Google service account env vars");
-  privateKey = privateKey.replace(/\\n/g, "\n");
+// export const getGoogleCalendarClient = () => {
+//   const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+//   let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+//   if (!clientEmail || !privateKey) throw new Error("Missing Google service account env vars");
+//   privateKey = privateKey.replace(/\\n/g, "\n");
 
-  const auth = new google.auth.JWT({
-    email: clientEmail,
-    key: privateKey,
-    scopes: ["https://www.googleapis.com/auth/calendar"],
-  });
+//   const auth = new google.auth.JWT({
+//     email: clientEmail,
+//     key: privateKey,
+//     scopes: ["https://www.googleapis.com/auth/calendar"],
+//   });
 
-  const calendar = google.calendar({ version: "v3", auth });
-  return calendar;
-};
+//   const calendar = google.calendar({ version: "v3", auth });
+//   return calendar;
+// };
