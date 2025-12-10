@@ -99,62 +99,99 @@
 // };
 
 
-import Booking from "../models/Booking.js";
-import { stripe } from "../config/stripe.js";
-import { sendBookingEmails } from "../utils/email.js";
+// import Booking from "../models/Booking.js";
+// import  { stripe } from "../config/stripe.js";
+// import { sendBookingEmails } from "../utils/email.js";
+// import Stripe from "stripe";
 
 
 
+// // backend: /api/payment/create-checkout-session
+
+
+// const stripe = new Stripe(process.env.STRIPE_SECRET);
+
+// export const createCheckoutSession = async (req, res) => {
+//   try {
+//     const { bookingId, amount } = req.body;
+
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items: [
+//         {
+//           price_data: {
+//             currency: "usd",
+//             product_data: {
+//               name: "Counseling Session",
+//             },
+//             unit_amount: amount * 100,
+//           },
+//           quantity: 1,
+//         },
+//       ],
+//       mode: "payment",
+//       success_url: "http://localhost:5173/payment-success?bookingId=" + bookingId,
+//       cancel_url: "http://localhost:5173/payment-failed",
+//       metadata: { bookingId },
+//     });
+
+//     res.json({ success: true, url: session.url });
+
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, message: "Stripe error" });
+//   }
+// };
 
 
 // STRIPE create checkout
 
 
-export const createCheckoutSession = async (req, res) => {
-  try {
-    const { bookingId } = req.body;
-    const booking = await Booking.findById(bookingId).populate("clientId counselorId");
-    if (!booking) return res.status(404).json({ message: "Booking not found" });
+// export const createCheckoutSession = async (req, res) => {
+//   try {
+//     const { bookingId } = req.body;
+//     const booking = await Booking.findById(bookingId).populate("clientId counselorId");
+//     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    // ✅ Stripe minimum payment fix here
-    if (booking.amount < 200) {
-      return res.status(400).json({
-        message: "Minimum payment amount is Rs. 200 for Stripe checkout."
-      });
-    }
+//     // ✅ Stripe minimum payment fix here
+//     if (booking.amount < 200) {
+//       return res.status(400).json({
+//         message: "Minimum payment amount is Rs. 200 for Stripe checkout."
+//       });
+//     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      line_items: [{
-        price_data: {
-          currency: "lkr",
-          unit_amount: Math.round(booking.amount * 100),
-          product_data: {
-            name: `Counseling session on ${booking.date} ${booking.time}`,
-            description: `${booking.sessionType} session with ${booking.counselorId.name}`
-          }
-        },
-        quantity: 1
-      }],
-      metadata: { 
-        bookingId: booking._id.toString(),
-        clientId: booking.clientId._id.toString(),
-        counselorId: booking.counselorId._id.toString()
-      },
-      success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`
-    });
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       mode: "payment",
+//       line_items: [{
+//         price_data: {
+//           currency: "lkr",
+//           unit_amount: Math.round(booking.amount * 100),
+//           product_data: {
+//             name: `Counseling session on ${booking.date} ${booking.time}`,
+//             description: `${booking.sessionType} session with ${booking.counselorId.name}`
+//           }
+//         },
+//         quantity: 1
+//       }],
+//       metadata: { 
+//         bookingId: booking._id.toString(),
+//         clientId: booking.clientId._id.toString(),
+//         counselorId: booking.counselorId._id.toString()
+//       },
+//       success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+//       cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`
+//     });
 
-    booking.stripeSessionId = session.id;
-    await booking.save();
+//     booking.stripeSessionId = session.id;
+//     await booking.save();
 
-    res.json({ url: session.url, sessionId: session.id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
-};
+//     res.json({ url: session.url, sessionId: session.id });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
 // export const stripeWebhook = async (req, res) => {
 //   const event = req.body; // POSTMAN MODE
@@ -220,73 +257,199 @@ export const createCheckoutSession = async (req, res) => {
 //   return res.json({ received: true });
 // };
 
-export const stripeWebhook = async (req, res) => {
-  let event;
 
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      req.headers["stripe-signature"],
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error("Webhook signature failed:", err);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-
-    const bookingId = session.metadata?.bookingId;
-    if (!bookingId) return res.json({ received: true });
-
-    const booking = await Booking.findByIdAndUpdate(
-      bookingId,
-      {
-        status: "paid",
-        stripeSessionId: session.id
-      },
-      { new: true }
-    );
-
-    console.log("BOOKING PAID:", booking);
-
-    // Send email (after payment)
-    sendBookingEmails({
-      clientEmail: booking.clientId.email,
-      counselorEmail: booking.counselorId.email,
-      booking,
-      prePayment: false
-    });
-  }
-
-  res.json({ received: true });
-};
+// import Booking from "../models/Booking.js";
+// import { stripe } from "../config/stripe.js";  // USE THIS
+// import { sendBookingEmails } from "../utils/email.js";
 
 
 
-// GET PAYMENT DETAILS
-export const getPaymentDetails = async (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+// export const createCheckoutSession = async (req, res) => {
+//   try {
+//     const { bookingId, amount } = req.body;
+
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items: [
+//         {
+//           price_data: {
+//             currency: "usd",
+//             product_data: {
+//               name: "Counseling Session",
+//             },
+//             unit_amount: amount * 100,
+//           },
+//           quantity: 1,
+//         },
+//       ],
+//       mode: "payment",
+//       success_url: `http://localhost:5173/payment-success?bookingId=${bookingId}`,
+//       cancel_url: "http://localhost:5173/payment-failed",
+//       metadata: { bookingId },
+//     });
+
+//     res.json({ success: true, url: session.url });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, message: "Stripe error" });
+//   }
+// };
+
+
+
+// export const stripeWebhook = async (req, res) => {
+//   let event;
+
+//   try {
+//     event = stripe.webhooks.constructEvent(
+//       req.body,
+//       req.headers["stripe-signature"],
+//       process.env.STRIPE_WEBHOOK_SECRET
+//     );
+//   } catch (err) {
+//     console.error("Webhook signature failed:", err);
+//     return res.status(400).send(`Webhook Error: ${err.message}`);
+//   }
+
+//   if (event.type === "checkout.session.completed") {
+//     const session = event.data.object;
+
+//     const bookingId = session.metadata?.bookingId;
+//     if (!bookingId) return res.json({ received: true });
+
+//     const booking = await Booking.findByIdAndUpdate(
+//       bookingId,
+//       {
+//         status: "paid",
+//         stripeSessionId: session.id
+//       },
+//       { new: true }
+//     );
+
+//     console.log("BOOKING PAID:", booking);
+
+//     // Send email (after payment)
+//     sendBookingEmails({
+//       clientEmail: booking.clientId.email,
+//       counselorEmail: booking.counselorId.email,
+//       booking,
+//       prePayment: false
+//     });
+//   }
+
+//   res.json({ received: true });
+// };
+
+
+
+// // GET PAYMENT DETAILS
+// export const getPaymentDetails = async (req, res) => {
+//   try {
+//     const { sessionId } = req.params;
+//     const session = await stripe.checkout.sessions.retrieve(sessionId);
     
-    const booking = await Booking.findById(session.metadata?.bookingId)
-      .populate("clientId counselorId");
+//     const booking = await Booking.findById(session.metadata?.bookingId)
+//       .populate("clientId counselorId");
     
+//     if (!booking) {
+//       return res.status(404).json({ success: false, message: "Booking not found" });
+//     }
+
+//     res.json({
+//       success: true,
+//       session,
+//       booking,
+//       paymentStatus: session.payment_status,
+//       currency: "LKR"
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// controllers/paymentController.js
+
+import Booking from "../models/Booking.js";
+import { stripe } from "../config/stripe.js";
+import { sendBookingEmails } from "../utils/email.js";
+
+// Create Checkout Session
+export const createCheckoutSession = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    const booking = await Booking.findById(bookingId);
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    res.json({
-      success: true,
-      session,
-      booking,
-      paymentStatus: session.payment_status,
-      currency: "LKR"
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            unit_amount: booking.amount * 100,
+            product_data: {
+              name: `Counseling Session (${booking.sessionType})`,
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `${process.env.FRONTEND_URL}/payment-success?bookingId=${bookingId}`,
+      cancel_url: `${process.env.FRONTEND_URL}/payment-failed`,
+      metadata: { bookingId },
     });
+
+    res.json({ success: true, url: session.url });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: "Stripe error" });
+  }
+};
+
+
+
+// Stripe Webhook (Payment Completed)
+export const stripeWebhook = async (req, res) => {
+  try {
+    const event = req.body;
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const bookingId = session.metadata.bookingId;
+
+      const booking = await Booking.findById(bookingId).populate("clientId counselorId");
+
+      if (!booking) return res.json({ received: true });
+
+      // Update booking → PAID
+      booking.status = "paid";
+      booking.paymentStatus = "paid";
+      await booking.save();
+
+      // Send emails
+      await sendBookingEmails({
+        clientEmail: booking.clientId.email,
+        clientName: booking.clientId.name,
+        counselorEmail: booking.counselorId.email,
+        counselorName: booking.counselorId.name,
+        booking,
+        prePayment: false,
+        sessionType: booking.sessionType,
+        meetLink: booking.meetLink,
+        chatRoom: booking.chatRoom,
+      });
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error("Webhook Error:", err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
   }
 };

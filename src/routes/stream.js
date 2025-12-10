@@ -47,14 +47,15 @@
 // export default router;
 
 
-import { StreamVideoClient } from "@stream-io/video-server-sdk"; // backend SDK
+// routes/tokenRoute.js
+// import { generateStreamToken } from "../lib/stream.js";
 
-const streamClient = new StreamVideoClient({
-  apiKey: process.env.STREAM_API_KEY,
-  apiSecret: process.env.STREAM_API_SECRET,
-});
+// router.get("/token/:userId", (req, res) => {
+//   try {
+//     const token = generateStreamToken(req.params.userId);
+//     res.json({ success: true, token });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// });
 
-const streamRoomId = `${counselorId}_${clientId}`;
-const token = streamClient.createToken(clientId); // or counselorId
-
-const streamVideoLink = `${process.env.FRONTEND_URL}/call/${streamRoomId}?token=${token}`;

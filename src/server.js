@@ -21,6 +21,8 @@ import chatRouter from "./routes/chat.js";
 import bodyParser from "body-parser";
 import ChatMessage from "./models/ChatMessage.js";
 import payoutRoutes from "./routes/payoutRoutes.js"
+import tokenRoute from "./routes/tokenRoute.js";
+
 // import streamRoutes from "./routes/stream.js"
 
 connectDB();
@@ -67,6 +69,7 @@ app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
 app.use("/api/chat", chatRouter);
 // app.use("/api/stream", streamRoutes);
+app.use("/api/token", tokenRoute);
 
 app.use("/api/payment", paymentRoutes);
 app.use("/api/payout",payoutRoutes)

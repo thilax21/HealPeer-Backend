@@ -17,7 +17,7 @@ import express from "express";
 import {
   createCheckoutSession,
   stripeWebhook,
-  getPaymentDetails
+  // getPaymentDetails
 } from "../controllers/paymentController.js";
 
 const router = express.Router();
@@ -34,6 +34,6 @@ router.post("/webhook", express.raw({ type: "application/json" }), stripeWebhook
 // -----------------------
 router.post("/create-checkout-session", createCheckoutSession);
 
-router.get("/details/:sessionId", getPaymentDetails);
+// router.get("/details/:sessionId", getPaymentDetails);
 
 export default router;

@@ -38,7 +38,7 @@ const bookingSchema = new mongoose.Schema({
   stripeSessionId: { type: String },
   stripePaymentIntentId: { type: String }, // Stripe payment intent ID
   googleEventId: { type: String },       // Google Calendar event ID
-  meetLink: streamVideoLink,            // Stream Video URL  
+  meetLink:  { type: String }  ,        // Stream Video URL  
   calendarCreated: { type: Boolean, default: false }, // flag if calendar event created
   chatRoom: { type: String },           // Chat room identifier for chat sessions
   confirmedAt: { type: Date }, // When booking was confirmed after payment
