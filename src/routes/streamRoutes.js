@@ -53,24 +53,23 @@ import { generateStreamToken } from "../lib/stream.js";
 
 const router = express.Router();
 
+// Get token for a user
 router.get("/token/:userId", (req, res) => {
   try {
     const userId = req.params.userId;
-
     const token = generateStreamToken(userId);
 
-    return res.json({
+    res.json({
       success: true,
       userId,
       token,
     });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
 export default router;
+
+
 

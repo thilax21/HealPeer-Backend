@@ -67,24 +67,39 @@
 
 // export default router;
 
+// import express from "express";
+// import {
+//     createBooking,
+//     // markBookingPaid,
+//     // getBookingById,
+//     // getBookingsForCounselor,
+//     // getBookingsForClient,
+//     // cancelBooking,
+//     // updateBookingStatus,
+// } from "../controllers/bookingController.js";
+// const router = express.Router();
+
+// router.post("/create", createBooking);
+// // router.post("/mark-paid/:bookingId",markBookingPaid); // or webhook calls paymentController then calls this
+// // router.get("/:bookingId",getBookingById);
+// // router.get("/counselor/:counselorId",getBookingsForCounselor);
+// // router.get("/client/:clientId", getBookingsForClient);
+// // router.post("/cancel/:bookingId", cancelBooking);
+// // router.patch("/status/:bookingId", updateBookingStatus);
+
+// export default router;
+
 import express from "express";
-import {
-    createBooking,
-    markBookingPaid,
-    getBookingById,
-    getBookingsForCounselor,
-    getBookingsForClient,
-    cancelBooking,
-    updateBookingStatus,
+import { 
+  createBooking, 
+  getBookingsForClient, 
+  getBookingsForCounselor 
 } from "../controllers/bookingController.js";
+
 const router = express.Router();
 
 router.post("/create", createBooking);
-router.post("/mark-paid/:bookingId",markBookingPaid); // or webhook calls paymentController then calls this
-router.get("/:bookingId",getBookingById);
-router.get("/counselor/:counselorId",getBookingsForCounselor);
 router.get("/client/:clientId", getBookingsForClient);
-router.post("/cancel/:bookingId", cancelBooking);
-router.patch("/status/:bookingId", updateBookingStatus);
+router.get("/counselor/:counselorId", getBookingsForCounselor);
 
 export default router;
