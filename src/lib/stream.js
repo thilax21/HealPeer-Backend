@@ -24,17 +24,10 @@ const client = new StreamClient(
   process.env.STREAM_API_SECRET
 );
 
-export const createVideoRoom = async () => {
-  const callId = `healpeer_${Date.now()}`;
+export const generateStreamToken = (userId) => {
+  if (!userId) throw new Error("User ID required");
 
-  const response = await client.video.call("default", callId).create({
-    data: {
-      starts_at: new Date().toISOString(),
-    },
-  });
-
-  return {
-    callId,
-    meetLink: `https://meet.stream-io-video.com/call/default/${callId}`
-  };
+  // Generate token for chat/video
+  const token = client.createToken(userId);
+  return token;
 };

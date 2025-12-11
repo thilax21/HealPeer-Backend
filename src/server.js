@@ -22,6 +22,7 @@ import bodyParser from "body-parser";
 import ChatMessage from "./models/ChatMessage.js";
 import payoutRoutes from "./routes/payoutRoutes.js"
 import tokenRoute from "./routes/tokenRoute.js";
+import streamRoutes from "./routes/streamRoutes.js";
 
 // import streamRoutes from "./routes/stream.js"
 
@@ -76,6 +77,7 @@ app.use("/api/payout",payoutRoutes)
 app.use("/api/booking",bookingRoutes)
 app.use("/api/availability", availabilityRoutes);
 
+app.use("/api/stream", streamRoutes);
 
 
 // // Socket.io connection handling

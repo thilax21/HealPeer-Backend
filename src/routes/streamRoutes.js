@@ -48,14 +48,29 @@
 
 
 // routes/tokenRoute.js
-// import { generateStreamToken } from "../lib/stream.js";
+import express from "express";
+import { generateStreamToken } from "../lib/stream.js";
 
-// router.get("/token/:userId", (req, res) => {
-//   try {
-//     const token = generateStreamToken(req.params.userId);
-//     res.json({ success: true, token });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// });
+const router = express.Router();
+
+router.get("/token/:userId", (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    const token = generateStreamToken(userId);
+
+    return res.json({
+      success: true,
+      userId,
+      token,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+});
+
+export default router;
 

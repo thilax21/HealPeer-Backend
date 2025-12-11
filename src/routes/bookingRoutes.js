@@ -68,15 +68,23 @@
 // export default router;
 
 import express from "express";
-import * as ctrl from "../controllers/bookingController.js";
+import {
+    createBooking,
+    markBookingPaid,
+    getBookingById,
+    getBookingsForCounselor,
+    getBookingsForClient,
+    cancelBooking,
+    updateBookingStatus,
+} from "../controllers/bookingController.js";
 const router = express.Router();
 
-router.post("/create", ctrl.createBooking);
-router.post("/mark-paid/:bookingId", ctrl.markBookingPaid); // or webhook calls paymentController then calls this
-router.get("/:bookingId", ctrl.getBookingById);
-router.get("/counselor/:counselorId", ctrl.getBookingsForCounselor);
-router.get("/client/:clientId", ctrl.getBookingsForClient);
-router.post("/cancel/:bookingId", ctrl.cancelBooking);
-router.patch("/status/:bookingId", ctrl.updateBookingStatus);
+router.post("/create", createBooking);
+router.post("/mark-paid/:bookingId",markBookingPaid); // or webhook calls paymentController then calls this
+router.get("/:bookingId",getBookingById);
+router.get("/counselor/:counselorId",getBookingsForCounselor);
+router.get("/client/:clientId", getBookingsForClient);
+router.post("/cancel/:bookingId", cancelBooking);
+router.patch("/status/:bookingId", updateBookingStatus);
 
 export default router;
