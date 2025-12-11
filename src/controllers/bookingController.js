@@ -571,261 +571,425 @@
 // };
 
 
-// src/controllers/bookingController.js
+// // src/controllers/bookingController.js
+// import Booking from "../models/Booking.js";
+// import User from "../models/User.js";
+// import { sendBookingEmails } from "../utils/email.js";
+// import { generateStreamToken } from "../lib/stream.js";
+
+// /**
+//  * Create a booking (pending payment).
+//  * - sessionType: "video" | "chat"
+//  * - For video: creates a roomId and generates a server-side token, builds a meetLink
+//  */
+// export const createBooking = async (req, res) => {
+//   try {
+//     const {
+//       clientId,
+//       counselorId,
+//       date,
+//       time,
+//       durationMin = 60,
+//       notes,
+//       amount,
+//       sessionType = "video",
+//     } = req.body;
+
+//     // Basic validation
+//     if (!clientId || !counselorId || !date || !time)
+//       return res.status(400).json({ success: false, message: "Missing required fields" });
+
+//     // Load users
+//     const client = await User.findById(clientId).select("_id name email");
+//     const counselor = await User.findById(counselorId).select("_id name email pricePerSession");
+//     if (!client || !counselor)
+//       return res.status(404).json({ success: false, message: "Client or counselor not found" });
+
+//     // Build meeting / chat details
+//     let meetLink = null;
+//     let chatRoom = null;
+//     let roomId = null;
+//     if (sessionType === "video") {
+//       roomId = `${counselorId}_${clientId}_${Date.now()}`;
+//       // token created server-side using API secret
+//       const token = generateStreamToken(clientId);
+//       // frontend route to open in-app Stream call UI (frontend must use token to init client)
+//       meetLink = `${process.env.FRONTEND_URL}/call/${roomId}?token=${encodeURIComponent(token)}&userId=${clientId}`;
+//     } else if (sessionType === "chat") {
+//       chatRoom = `${counselorId}_${clientId}`;
+//     }
+
+//     // amount fallback
+//     const finalAmount = amount ?? counselor.pricePerSession ?? 1000;
+
+//     // Create booking (status: pending)
+//     const booking = new Booking({
+//       clientId,
+//       counselorId,
+//       date,
+//       time,
+//       durationMin,
+//       notes,
+//       amount: finalAmount,
+//       sessionType,
+//       meetLink,
+//       chatRoom,
+//       roomId,
+//       status: "pending", // pending until payment completed
+//       paymentStatus: "pending",
+//     });
+
+//     await booking.save();
+
+//     // Send pre-payment email (best-effort)
+//     try {
+//       await sendBookingEmails({
+//         clientEmail: client.email,
+//         clientName: client.name,
+//         counselorEmail: counselor.email,
+//         counselorName: counselor.name,
+//         booking,
+//         prePayment: true,
+//         sessionType: booking.sessionType,
+//         meetLink: booking.meetLink,
+//         chatRoom: booking.chatRoom,
+//       });
+//     } catch (err) {
+//       console.error("Pre-payment email failed:", err?.message || err);
+//     }
+
+//     return res.status(201).json({ success: true, booking });
+//   } catch (err) {
+//     console.error("createBooking error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
+// /**
+//  * Mark booking as paid (to be called by Stripe webhook or similar).
+//  * This updates booking.status/paymentStatus and sends post-payment emails.
+//  * Safe to call multiple times (idempotent-ish).
+//  */
+// export const markBookingPaid = async (req, res) => {
+//   try {
+//     const { bookingId } = req.params; // or from body
+//     if (!bookingId) return res.status(400).json({ success: false, message: "Missing bookingId" });
+
+//     const booking = await Booking.findById(bookingId).populate("clientId counselorId");
+//     if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+//     // If already paid, return success
+//     if (booking.paymentStatus === "paid") {
+//       return res.json({ success: true, message: "Already marked paid", booking });
+//     }
+
+//     booking.paymentStatus = "paid";
+//     booking.status = "confirmed"; // or 'paid' depending on your states
+//     booking.paidAt = new Date();
+//     await booking.save();
+
+//     // Post-payment emails (best-effort)
+//     try {
+//       await sendBookingEmails({
+//         clientEmail: booking.clientId.email,
+//         clientName: booking.clientId.name,
+//         counselorEmail: booking.counselorId.email,
+//         counselorName: booking.counselorId.name,
+//         booking,
+//         prePayment: false,
+//         sessionType: booking.sessionType,
+//         meetLink: booking.meetLink,
+//         chatRoom: booking.chatRoom,
+//       });
+//     } catch (err) {
+//       console.error("Post-payment email failed:", err?.message || err);
+//     }
+
+//     return res.json({ success: true, booking });
+//   } catch (err) {
+//     console.error("markBookingPaid error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
+// /**
+//  * Get booking by id
+//  */
+// export const getBookingById = async (req, res) => {
+//   try {
+//     const { bookingId } = req.params;
+//     if (!bookingId) return res.status(400).json({ success: false, message: "Missing bookingId" });
+
+//     const booking = await Booking.findById(bookingId)
+//       .populate("clientId", "name email")
+//       .populate("counselorId", "name email pricePerSession");
+
+//     if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+//     return res.json({ success: true, booking });
+//   } catch (err) {
+//     console.error("getBookingById error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
+// /**
+//  * List bookings for a counselor
+//  */
+// export const getBookingsForCounselor = async (req, res) => {
+//   try {
+//     const { counselorId } = req.params;
+//     if (!counselorId) return res.status(400).json({ success: false, message: "Missing counselorId" });
+
+//     const bookings = await Booking.find({ counselorId }).sort({ date: 1, time: 1 });
+//     return res.json({ success: true, bookings });
+//   } catch (err) {
+//     console.error("getBookingsForCounselor error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
+// /**
+//  * List bookings for a client
+//  */
+// export const getBookingsForClient = async (req, res) => {
+//   try {
+//     const { clientId } = req.params;
+//     if (!clientId) return res.status(400).json({ success: false, message: "Missing clientId" });
+
+//     const bookings = await Booking.find({ clientId }).sort({ date: 1, time: 1 });
+//     return res.json({ success: true, bookings });
+//   } catch (err) {
+//     console.error("getBookingsForClient error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
+// /**
+//  * Cancel booking (only allowed if pending/unpaid or within cancel policy)
+//  */
+// export const cancelBooking = async (req, res) => {
+//   try {
+//     const { bookingId } = req.params;
+//     const { requesterId } = req.body; // optional: who's canceling
+//     if (!bookingId) return res.status(400).json({ success: false, message: "Missing bookingId" });
+
+//     const booking = await Booking.findById(bookingId).populate("clientId counselorId");
+//     if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+//     // Only allow cancel if pending/unpaid OR implement business rules (time window)
+//     if (booking.paymentStatus === "paid" && booking.status === "confirmed") {
+//       return res.status(400).json({ success: false, message: "Cannot cancel a paid/confirmed booking via this endpoint" });
+//     }
+
+//     booking.status = "cancelled";
+//     booking.canceledAt = new Date();
+//     await booking.save();
+
+//     // Notify parties (best-effort)
+//     try {
+//       await sendBookingEmails({
+//         clientEmail: booking.clientId.email,
+//         clientName: booking.clientId.name,
+//         counselorEmail: booking.counselorId.email,
+//         counselorName: booking.counselorId.name,
+//         booking,
+//         cancelled: true,
+//       });
+//     } catch (err) {
+//       console.error("Cancel email failed:", err?.message || err);
+//     }
+
+//     return res.json({ success: true, booking });
+//   } catch (err) {
+//     console.error("cancelBooking error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
+// /**
+//  * Utility: update booking status (admin)
+//  */
+// export const updateBookingStatus = async (req, res) => {
+//   try {
+//     const { bookingId } = req.params;
+//     const { status } = req.body;
+//     if (!bookingId || !status) return res.status(400).json({ success: false, message: "Missing bookingId or status" });
+
+//     const booking = await Booking.findById(bookingId);
+//     if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+//     booking.status = status;
+//     if (status === "completed") booking.completedAt = new Date();
+//     await booking.save();
+
+//     return res.json({ success: true, booking });
+//   } catch (err) {
+//     console.error("updateBookingStatus error:", err);
+//     return res.status(500).json({ success: false, message: err.message || "Server error" });
+//   }
+// };
+
 import Booking from "../models/Booking.js";
 import User from "../models/User.js";
+import PaymentHistory from "../models/PaymentHistory.js";
+import Stripe from "stripe";
+import { createVideoRoom } from "../lib/stream.js";
 import { sendBookingEmails } from "../utils/email.js";
-import { generateStreamToken } from "../lib/stream.js";
 
-/**
- * Create a booking (pending payment).
- * - sessionType: "video" | "chat"
- * - For video: creates a roomId and generates a server-side token, builds a meetLink
- */
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// LKR default converter
+const convertToLKR = (amount, currency = "LKR") => {
+  if (currency === "LKR") return amount;
+  if (currency === "USD") return amount * 300;   // Sample rate
+  if (currency === "INR") return amount * 4;     // Sample rate
+  return amount;
+};
+
+// ---------------------------------------
+// CREATE BOOKING (pre-payment)
+// ---------------------------------------
 export const createBooking = async (req, res) => {
   try {
-    const {
-      clientId,
-      counselorId,
-      date,
-      time,
-      durationMin = 60,
-      notes,
-      amount,
-      sessionType = "video",
-    } = req.body;
+    const { clientId, counselorId, date, time, durationMin, notes, sessionType } = req.body;
 
-    // Basic validation
-    if (!clientId || !counselorId || !date || !time)
-      return res.status(400).json({ success: false, message: "Missing required fields" });
+    const client = await User.findById(clientId);
+    const counselor = await User.findById(counselorId);
 
-    // Load users
-    const client = await User.findById(clientId).select("_id name email");
-    const counselor = await User.findById(counselorId).select("_id name email pricePerSession");
-    if (!client || !counselor)
-      return res.status(404).json({ success: false, message: "Client or counselor not found" });
-
-    // Build meeting / chat details
-    let meetLink = null;
-    let chatRoom = null;
-    let roomId = null;
-    if (sessionType === "video") {
-      roomId = `${counselorId}_${clientId}_${Date.now()}`;
-      // token created server-side using API secret
-      const token = generateStreamToken(clientId);
-      // frontend route to open in-app Stream call UI (frontend must use token to init client)
-      meetLink = `${process.env.FRONTEND_URL}/call/${roomId}?token=${encodeURIComponent(token)}&userId=${clientId}`;
-    } else if (sessionType === "chat") {
-      chatRoom = `${counselorId}_${clientId}`;
+    if (!client || !counselor) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // amount fallback
-    const finalAmount = amount ?? counselor.pricePerSession ?? 1000;
+    // 1️⃣ Create Stream room
+    let meetLink = null;
+    let callId = null;
 
-    // Create booking (status: pending)
-    const booking = new Booking({
-      clientId,
-      counselorId,
+    if (sessionType === "video") {
+      const room = await createVideoRoom();
+      meetLink = room.meetLink;
+      callId = room.callId;
+    }
+
+    // 2️⃣ Booking amount (1000 per hour)
+    const amount = Math.round((durationMin / 60) * 1000);
+
+    // 3️⃣ Save booking in DB (Pending)
+    const booking = await Booking.create({
+      client: clientId,
+      counselor: counselorId,
       date,
       time,
       durationMin,
       notes,
-      amount: finalAmount,
       sessionType,
       meetLink,
-      chatRoom,
-      roomId,
-      status: "pending", // pending until payment completed
-      paymentStatus: "pending",
+      callId,
+      amount,
+      paymentStatus: "pending"
     });
 
-    await booking.save();
+    // 4️⃣ Create Stripe Checkout
+    const amountLKR = convertToLKR(amount, "LKR");
 
-    // Send pre-payment email (best-effort)
-    try {
-      await sendBookingEmails({
-        clientEmail: client.email,
-        clientName: client.name,
-        counselorEmail: counselor.email,
-        counselorName: counselor.name,
-        booking,
-        prePayment: true,
-        sessionType: booking.sessionType,
-        meetLink: booking.meetLink,
-        chatRoom: booking.chatRoom,
-      });
-    } catch (err) {
-      console.error("Pre-payment email failed:", err?.message || err);
-    }
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      currency: "lkr",
+      line_items: [
+        {
+          price_data: {
+            currency: "lkr",
+            product_data: {
+              name: `HealPeer Session with ${counselor.name}`,
+            },
+            unit_amount: amountLKR * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.FRONTEND_URL}/payment-success?bookingId=${booking._id}`,
+      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+      metadata: {
+        bookingId: booking._id.toString(),
+      },
+    });
 
-    return res.status(201).json({ success: true, booking });
-  } catch (err) {
-    console.error("createBooking error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
+    // 5️⃣ Send PRE-PAYMENT email
+    await sendBookingEmails({
+      clientEmail: client.email,
+      clientName: client.name,
+      counselorEmail: counselor.email,
+      counselorName: counselor.name,
+      meetLink,
+      booking,
+      prePayment: true,
+      chatRoom: callId,
+      sessionType,
+      currency: "LKR",
+      paidAmount: amountLKR
+    });
+
+    res.json({
+      message: "Booking created. Stripe session ready.",
+      checkoutUrl: session.url,
+      booking,
+      meetLink,
+    });
+
+  } catch (error) {
+    console.error("CREATE BOOKING ERROR:", error);
+    res.status(500).json({ message: "Error creating booking", error: error.message });
   }
 };
 
-/**
- * Mark booking as paid (to be called by Stripe webhook or similar).
- * This updates booking.status/paymentStatus and sends post-payment emails.
- * Safe to call multiple times (idempotent-ish).
- */
-export const markBookingPaid = async (req, res) => {
+export const stripeWebhook = async (req, res) => {
   try {
-    const { bookingId } = req.params; // or from body
-    if (!bookingId) return res.status(400).json({ success: false, message: "Missing bookingId" });
+    const event = req.body;
 
-    const booking = await Booking.findById(bookingId).populate("clientId counselorId");
-    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const bookingId = session.metadata.bookingId;
 
-    // If already paid, return success
-    if (booking.paymentStatus === "paid") {
-      return res.json({ success: true, message: "Already marked paid", booking });
-    }
+      const booking = await Booking.findById(bookingId)
+        .populate("client")
+        .populate("counselor");
 
-    booking.paymentStatus = "paid";
-    booking.status = "confirmed"; // or 'paid' depending on your states
-    booking.paidAt = new Date();
-    await booking.save();
+      if (!booking) return res.json({ received: true });
 
-    // Post-payment emails (best-effort)
-    try {
+      // Mark booking as PAID
+      booking.paymentStatus = "paid";
+      await booking.save();
+
+      // Save Payment History
+      await PaymentHistory.create({
+        user: booking.counselor._id,
+        booking: booking._id,
+        amount: booking.amount,
+        currency: "LKR",
+        status: "paid",
+      });
+
+      // Send PAYMENT CONFIRMATION emails
       await sendBookingEmails({
-        clientEmail: booking.clientId.email,
-        clientName: booking.clientId.name,
-        counselorEmail: booking.counselorId.email,
-        counselorName: booking.counselorId.name,
+        clientEmail: booking.client.email,
+        clientName: booking.client.name,
+        counselorEmail: booking.counselor.email,
+        counselorName: booking.counselor.name,
+        meetLink: booking.meetLink,
         booking,
         prePayment: false,
+        chatRoom: booking.callId,
         sessionType: booking.sessionType,
-        meetLink: booking.meetLink,
-        chatRoom: booking.chatRoom,
+        currency: "LKR",
+        paidAmount: booking.amount,
       });
-    } catch (err) {
-      console.error("Post-payment email failed:", err?.message || err);
     }
 
-    return res.json({ success: true, booking });
-  } catch (err) {
-    console.error("markBookingPaid error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
-  }
-};
+    res.json({ received: true });
 
-/**
- * Get booking by id
- */
-export const getBookingById = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    if (!bookingId) return res.status(400).json({ success: false, message: "Missing bookingId" });
-
-    const booking = await Booking.findById(bookingId)
-      .populate("clientId", "name email")
-      .populate("counselorId", "name email pricePerSession");
-
-    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
-
-    return res.json({ success: true, booking });
-  } catch (err) {
-    console.error("getBookingById error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
-  }
-};
-
-/**
- * List bookings for a counselor
- */
-export const getBookingsForCounselor = async (req, res) => {
-  try {
-    const { counselorId } = req.params;
-    if (!counselorId) return res.status(400).json({ success: false, message: "Missing counselorId" });
-
-    const bookings = await Booking.find({ counselorId }).sort({ date: 1, time: 1 });
-    return res.json({ success: true, bookings });
-  } catch (err) {
-    console.error("getBookingsForCounselor error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
-  }
-};
-
-/**
- * List bookings for a client
- */
-export const getBookingsForClient = async (req, res) => {
-  try {
-    const { clientId } = req.params;
-    if (!clientId) return res.status(400).json({ success: false, message: "Missing clientId" });
-
-    const bookings = await Booking.find({ clientId }).sort({ date: 1, time: 1 });
-    return res.json({ success: true, bookings });
-  } catch (err) {
-    console.error("getBookingsForClient error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
-  }
-};
-
-/**
- * Cancel booking (only allowed if pending/unpaid or within cancel policy)
- */
-export const cancelBooking = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    const { requesterId } = req.body; // optional: who's canceling
-    if (!bookingId) return res.status(400).json({ success: false, message: "Missing bookingId" });
-
-    const booking = await Booking.findById(bookingId).populate("clientId counselorId");
-    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
-
-    // Only allow cancel if pending/unpaid OR implement business rules (time window)
-    if (booking.paymentStatus === "paid" && booking.status === "confirmed") {
-      return res.status(400).json({ success: false, message: "Cannot cancel a paid/confirmed booking via this endpoint" });
-    }
-
-    booking.status = "cancelled";
-    booking.canceledAt = new Date();
-    await booking.save();
-
-    // Notify parties (best-effort)
-    try {
-      await sendBookingEmails({
-        clientEmail: booking.clientId.email,
-        clientName: booking.clientId.name,
-        counselorEmail: booking.counselorId.email,
-        counselorName: booking.counselorId.name,
-        booking,
-        cancelled: true,
-      });
-    } catch (err) {
-      console.error("Cancel email failed:", err?.message || err);
-    }
-
-    return res.json({ success: true, booking });
-  } catch (err) {
-    console.error("cancelBooking error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
-  }
-};
-
-/**
- * Utility: update booking status (admin)
- */
-export const updateBookingStatus = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    const { status } = req.body;
-    if (!bookingId || !status) return res.status(400).json({ success: false, message: "Missing bookingId or status" });
-
-    const booking = await Booking.findById(bookingId);
-    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
-
-    booking.status = status;
-    if (status === "completed") booking.completedAt = new Date();
-    await booking.save();
-
-    return res.json({ success: true, booking });
-  } catch (err) {
-    console.error("updateBookingStatus error:", err);
-    return res.status(500).json({ success: false, message: err.message || "Server error" });
+  } catch (error) {
+    console.error("WEBHOOK ERROR:", error);
+    res.status(400).send(`Webhook Error: ${error.message}`);
   }
 };
