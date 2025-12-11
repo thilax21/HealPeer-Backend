@@ -257,8 +257,8 @@ export const createBooking = async (req, res) => {
     const amount = Math.round((durationMin / 60) * (counselor.pricePerSession || 1000));
 
     const booking = await Booking.create({
-      clientId,
-      counselorId,
+      client: clientId,       // use "client" not "clientId"
+  counselor: counselorId,  // use "counselor" not "counselorId"
       date,
       time,
       durationMin,
