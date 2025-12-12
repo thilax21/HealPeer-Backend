@@ -4,8 +4,6 @@ import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
 import connectDB from "./config/db.js";
-// import { createServer } from "http";
-// import { Server } from "socket.io";
 
 import  stripeWebhook from "./routes/paymentRoutes.js";
 import authRoutes from "./routes/authRoutes.js"
@@ -48,12 +46,6 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-
-// app.use(express.json({
-//   verify: (req, res, buf) => {
-//     req.rawBody = buf.toString();
-//   }
-// }));
 
 
 
