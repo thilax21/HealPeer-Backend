@@ -5,7 +5,7 @@ dotenv.config();
 import cors from "cors";
 import connectDB from "./config/db.js";
 
-import  stripeWebhook from "./routes/paymentRoutes.js";
+// import { stripeWebhook } from "./routes/paymentRoutes.js";
 import authRoutes from "./routes/authRoutes.js"
 import counselorRoutes from "./routes/counselorRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
@@ -19,28 +19,23 @@ import chatRouter from "./routes/chat.js";
 import bodyParser from "body-parser";
 import ChatMessage from "./models/ChatMessage.js";
 import payoutRoutes from "./routes/payoutRoutes.js"
-import tokenRoute from "./routes/tokenRoute.js";
 import streamRoutes from "./routes/streamRoutes.js";
-
-// import streamRoutes from "./routes/stream.js"
 
 connectDB();
 
 const app = express();
 
 // Stripe webhook must be before express.json()
-// Before express.json()
 app.post(
   "/api/payment/webhook",
   express.raw({ type: "application/json" }),
-  stripeWebhook
 );
 
 
 
 
 app.use(cors({
-  origin:  "https://heal-peer-frontend.vercel.app",  // your frontend
+  origin:  "*",  // your frontend
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -65,15 +60,13 @@ app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
 
 app.use("/api/chat", chatRouter);
-// app.use("/api/stream", streamRoutes);
-app.use("/api/token", tokenRoute);
+app.use("/api/stream", streamRoutes);
 
 app.use("/api/payment", paymentRoutes);
 app.use("/api/payout",payoutRoutes)
 app.use("/api/booking",bookingRoutes)
 app.use("/api/availability", availabilityRoutes);
 
-app.use("/api/stream", streamRoutes);
 
 
 // // Socket.io connection handling

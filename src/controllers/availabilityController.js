@@ -1,69 +1,158 @@
-import Availability from "../models/Availability.js";
+// src/controllers/availabilityController.js
+import CounselorAvailability from "../models/CounselorAvailability.js";
 import Booking from "../models/Booking.js";
 
-/**
- * counselor sets/updates weekly availability
- * body: { days: [{ day: "Monday", slots: [{start:"09:00", end:"10:00"}] }, ...] }
- */
-export const setAvailability = async (req, res) => {
-  try {
-    const counselorId = req.user._id;
-    const { days } = req.body;
+// Helper: combine "YYYY-MM-DD" + "HH:MM" => Date object
+const parseTimeOnDate = (dateStr, timeStr) => {
+  const [year, month, day] = dateStr.split("-");
+  const [hour, minute] = timeStr.split(":");
+  return new Date(year, month - 1, day, hour, minute);
+};
 
-    let availability = await Availability.findOne({ counselor: counselorId });
-    if (!availability) {
-      availability = new Availability({ counselor: counselorId, days });
-    } else {
-      availability.days = days;
+const formatHHMM = (date) => date.toTimeString().slice(0, 5);
+
+// Counselor: create or update their weekly availability
+export const upsertAvailability = async (req, res) => {
+  try {
+    const counselorId = req.user?._id;
+    if (!counselorId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
     }
-    await availability.save();
-    res.status(200).json({ success:true, data: availability });
+
+    const { slots } = req.body; // [{dayOfWeek, startTime, endTime, durationMin}, ...]
+
+    if (!Array.isArray(slots)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "slots array required" });
+    }
+
+    const doc = await CounselorAvailability.findOneAndUpdate(
+      { counselorId },
+      { slots },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({ success: true, data: doc });
   } catch (err) {
-    res.status(500).json({ success:false, message: err.message });
+    console.error("upsertAvailability error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to save availability" });
   }
 };
 
-export const getAvailability = async (req, res) => {
+// Get weekly availability config (for counselor / public)
+export const getWeeklyAvailability = async (req, res) => {
   try {
     const { counselorId } = req.params;
-    const availability = await Availability.findOne({ counselor: counselorId });
-    if (!availability) return res.status(404).json({ success:false, message: "No availability" });
-    res.json({ success:true, data:availability });
+    const doc = await CounselorAvailability.findOne({ counselorId });
+    res.json({ success: true, data: doc || { counselorId, slots: [] } });
   } catch (err) {
-    res.status(500).json({ success:false, message: err.message });
+    console.error("getWeeklyAvailability error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to load availability" });
   }
 };
 
-/**
- * Query: /api/availability/slots/check?counselorId=...&date=2025-11-25
- * returns free slots (slots defined in availability minus bookings for that date)
- */
-export const getFreeSlots = async (req, res) => {
+// Get actual free time slots for a specific date (removing booked ones)
+export const getAvailableSlotsForDate = async (req, res) => {
   try {
-    const { counselorId, date } = req.query; // date YYYY-MM-DD
-    if (!counselorId || !date) return res.status(400).json({ success:false, message: "counselorId and date required" });
+    const { counselorId, date } = req.params; // date: "YYYY-MM-DD"
+    const requestedDuration =
+      Number(req.query.durationMin) || Number(req.query.duration) || null;
 
-    const availability = await Availability.findOne({ counselor: counselorId });
-    if (!availability) return res.json({ success:true, slots: [] });
+    if (!counselorId || !date) {
+      return res
+        .status(400)
+        .json({ success: false, message: "counselorId and date required" });
+    }
 
-    const dayName = new Date(date).toLocaleDateString("en-US", { weekday: "long" });
-    const dayAvailability = availability.days.find(d => d.day === dayName);
-    if (!dayAvailability) return res.json({ success:true, slots: [] });
+    const target = new Date(date);
+    if (Number.isNaN(target.getTime())) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid date format" });
+    }
 
-    // Fetch bookings for that counselor on that date
-    const from = new Date(`${date}T00:00:00`);
-    const to = new Date(`${date}T23:59:59`);
-    const booked = await Booking.find({ counselor: counselorId, dateTime: { $gte: from, $lte: to } });
+    const dayOfWeek = target.getDay(); // 0-6
+    const availability = await CounselorAvailability.findOne({ counselorId });
 
-    const bookedTimes = booked.map(b => {
-      const iso = b.dateTime.toISOString();
-      return iso.substring(11, 16); // "HH:MM"
+    if (!availability || !availability.slots.length) {
+      return res.json({ success: true, slots: [] });
+    }
+
+    const daySlots = availability.slots.filter(
+      (s) => s.dayOfWeek === dayOfWeek
+    );
+
+    if (!daySlots.length) {
+      return res.json({ success: true, slots: [] });
+    }
+
+    // all bookings that day
+    const bookings = await Booking.find({
+      counselorId,
+      date,
+      status: { $ne: "cancelled" },
     });
 
-    // Filter out slots whose start time exists in bookedTimes
-    const freeSlots = dayAvailability.slots.filter(s => !bookedTimes.includes(s.start));
-    res.json({ success:true, slots: freeSlots });
+    const freeSlots = [];
+
+    for (const slot of daySlots) {
+      // use client-chosen duration if provided, else slot.durationMin, else 60
+      const duration = requestedDuration || slot.durationMin || 60;
+
+      let currentStart = parseTimeOnDate(date, slot.startTime);
+      const slotEnd = parseTimeOnDate(date, slot.endTime);
+
+      while (currentStart.getTime() + duration * 60 * 1000 <= slotEnd.getTime()) {
+        const currentEnd = new Date(
+          currentStart.getTime() + duration * 60 * 1000
+        );
+
+        const overlaps = bookings.some((b) => {
+          let bStart = b.startDateTime
+            ? new Date(b.startDateTime)
+            : parseTimeOnDate(b.date, b.time);
+          let bEnd =
+            b.endDateTime ||
+            new Date(
+              bStart.getTime() + (b.durationMin || 60) * 60 * 1000
+            );
+
+          return (
+            currentStart < bEnd &&
+            currentEnd > bStart &&
+            b.status !== "cancelled"
+          );
+        });
+
+        if (!overlaps) {
+          freeSlots.push({
+            startDateTime: currentStart,
+            endDateTime: currentEnd,
+            startTime: formatHHMM(currentStart),
+            endTime: formatHHMM(currentEnd),
+            durationMin: duration,
+          });
+        }
+
+        // move to next possible start (same step as duration so slots don't overlap)
+        currentStart = new Date(
+          currentStart.getTime() + duration * 60 * 1000
+        );
+      }
+    }
+
+    res.json({ success: true, slots: freeSlots });
   } catch (err) {
-    res.status(500).json({ success:false, message: err.message });
+    console.error("getAvailableSlotsForDate error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to load available slots" });
   }
 };

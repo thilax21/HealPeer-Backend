@@ -7,6 +7,7 @@ import {
   getAllActiveCounselors,
   requestCounselor,
   getCounselorById,
+  updateCounselorProfile,
 } from "../controllers/counselorController.js";
 import { protect, adminOnly } from "../middlewares/authMiddleware.js";
 
@@ -22,6 +23,7 @@ router.put("/reject/:id", protect, adminOnly, rejectCounselor);
 
 // Public routes
 router.get("/all", getAllActiveCounselors);
+router.put("update/:id", protect, updateCounselorProfile); // <-- ADD THIS
 
 // 🚨 Must always be LAST
 router.get("/:id", getCounselorById);

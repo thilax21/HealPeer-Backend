@@ -2,390 +2,584 @@
 
 
 
-// import Booking from "../models/Booking.js";
-// import User from "../models/User.js";
-// import PaymentHistory from "../models/PaymentHistory.js";
-// import Stripe from "stripe";
-// import { generateStreamToken } from "../lib/stream.js";
-// import { sendBookingEmails } from "../utils/email.js";
-
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-// // LKR default converter
-// const convertToLKR = (amount, currency = "LKR") => {
-//   if (currency === "LKR") return amount;
-//   if (currency === "USD") return amount * 300;  
-//   if (currency === "INR") return amount * 4;     
-//   return amount;
-// };
-
-// // ---------------------------------------
-// // CREATE BOOKING
-// // ---------------------------------------
-// export const createBooking = async (req, res) => {
-//   try {
-//     const { clientId, counselorId, date, time, durationMin, notes, sessionType } = req.body;
-
-//     const client = await User.findById(clientId);
-//     const counselor = await User.findById(counselorId);
-
-//     if (!client || !counselor) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-
-//     // 1️⃣ Create Stream room
-//     let meetLink = null;
-//     let callId = null;
-
-//     if (sessionType === "video") {
-//       const room = await generateStreamToken();
-//       meetLink = room.meetLink;
-//       callId = room.callId;
-//     }
-
-//     // 2️⃣ Booking amount (1000 per hour)
-//     const amount = Math.round((durationMin / 60) * 1000);
-
-//     // 3️⃣ Save booking in DB (Pending)
-//     const booking = await Booking.create({
-//       client: clientId,
-//       counselor: counselorId,
-//       date,
-//       time,
-//       durationMin,
-//       notes,
-//       sessionType,
-//       meetLink,
-//       callId,
-//       amount,
-//       paymentStatus: "pending",
-//     });
-
-//     // 4️⃣ Stripe Checkout
-//     const amountLKR = convertToLKR(amount, "LKR");
-//     const session = await stripe.checkout.sessions.create({
-//       payment_method_types: ["card"],
-//       mode: "payment",
-//       currency: "lkr",
-//       line_items: [
-//         {
-//           price_data: {
-//             currency: "lkr",
-//             product_data: {
-//               name: `HealPeer Session with ${counselor.name}`,
-//             },
-//             unit_amount: amountLKR * 100,
-//           },
-//           quantity: 1,
-//         },
-//       ],
-//       success_url: `${process.env.FRONTEND_URL}/payment-success?bookingId=${booking._id}`,
-//       cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
-//       metadata: {
-//         bookingId: booking._id.toString(),
-//       },
-//     });
-
-//     // 5️⃣ Send PRE-PAYMENT email
-//     await sendBookingEmails({
-//       clientEmail: client.email,
-//       clientName: client.name,
-//       counselorEmail: counselor.email,
-//       counselorName: counselor.name,
-//       meetLink,
-//       booking,
-//       prePayment: true,
-//       chatRoom: callId,
-//       sessionType,
-//       currency: "LKR",
-//       paidAmount: amountLKR,
-//     });
-
-//     res.json({
-//       message: "Booking created. Stripe session ready.",
-//       checkoutUrl: session.url,
-//       booking,
-//       meetLink,
-//     });
-//   } catch (error) {
-//     console.error("CREATE BOOKING ERROR:", error);
-//     res.status(500).json({ message: "Error creating booking", error: error.message });
-//   }
-// };
-
-// // ---------------------------------------
-// // MARK BOOKING AS PAID (manual or webhook)
-// // ---------------------------------------
-// export const markBookingPaid = async (req, res) => {
-//   try {
-//     const { bookingId } = req.params;
-
-//     const booking = await Booking.findById(bookingId)
-//       .populate("client")
-//       .populate("counselor");
-
-//     if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-//     booking.paymentStatus = "paid";
-//     await booking.save();
-
-//     await PaymentHistory.create({
-//       user: booking.counselor._id,
-//       booking: booking._id,
-//       amount: booking.amount,
-//       currency: "LKR",
-//       status: "paid",
-//     });
-
-//     res.json({ success: true, booking });
-//   } catch (error) {
-//     console.error("MARK PAID ERROR:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// // ---------------------------------------
-// // GET BOOKING BY ID
-// // ---------------------------------------
-// export const getBookingById = async (req, res) => {
-//   try {
-//     const { bookingId } = req.params;
-//     const booking = await Booking.findById(bookingId)
-//       .populate("client")
-//       .populate("counselor");
-
-//     if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-//     res.json({ booking });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// // ---------------------------------------
-// // GET BOOKINGS FOR COUNSELOR
-// // ---------------------------------------
-// export const getBookingsForCounselor = async (req, res) => {
-//   try {
-//     const { counselorId } = req.params;
-//     const bookings = await Booking.find({ counselor: counselorId })
-//       .populate("client")
-//       .sort({ date: 1 });
-
-//     res.json({ bookings });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// // ---------------------------------------
-// // GET BOOKINGS FOR CLIENT
-// // ---------------------------------------
-// export const getBookingsForClient = async (req, res) => {
-//   try {
-//     const { clientId } = req.params;
-//     const bookings = await Booking.find({ client: clientId })
-//       .populate("counselor")
-//       .sort({ date: 1 });
-
-//     res.json({ bookings });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// // ---------------------------------------
-// // CANCEL BOOKING
-// // ---------------------------------------
-// export const cancelBooking = async (req, res) => {
-//   try {
-//     const { bookingId } = req.params;
-
-//     const booking = await Booking.findById(bookingId);
-//     if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-//     booking.status = "cancelled";
-//     await booking.save();
-
-//     res.json({ success: true, booking });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-// // ---------------------------------------
-// // UPDATE BOOKING STATUS
-// // ---------------------------------------
-// export const updateBookingStatus = async (req, res) => {
-//   try {
-//     const { bookingId } = req.params;
-//     const { status } = req.body;
-
-//     const booking = await Booking.findById(bookingId);
-//     if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-//     booking.status = status;
-//     await booking.save();
-
-//     res.json({ success: true, booking });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-import Booking from "../models/Booking.js";
+// controllers/bookingController.js
 import User from "../models/User.js";
-import PaymentHistory from "../models/PaymentHistory.js";
-import Stripe from "stripe";
-import { createVideoRoom } from "../lib/stream.js";
+import Booking from "../models/Booking.js";
 import { sendBookingEmails } from "../utils/email.js";
+import { createCalendarEvent } from "../utils/googleCalendar.js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-// --------------------
-// CREATE BOOKING + STRIPE SESSION
-// --------------------
 export const createBooking = async (req, res) => {
   try {
-    const { clientId, counselorId, date, time, durationMin, notes, sessionType } = req.body;
-
-    const client = await User.findById(clientId);
-    const counselor = await User.findById(counselorId);
-
-    if (!client || !counselor) return res.status(404).json({ message: "User not found" });
-
-    const amount = Math.round((durationMin / 60) * (counselor.pricePerSession || 1000));
-
-    const booking = await Booking.create({
-      client: clientId,       // use "client" not "clientId"
-  counselor: counselorId,  // use "counselor" not "counselorId"
+    const {
+      clientId,
+      counselorId,
       date,
       time,
-      durationMin,
+      durationMin = 60,
       notes,
       sessionType,
-      amount,
-      paymentStatus: "pending",
-      status: "pending",
-    });
+    } = req.body;
 
-    // Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      currency: "lkr",
-      line_items: [{
-        price_data: {
-          currency: "lkr",
-          unit_amount: amount * 100,
-          product_data: { name: `Session with ${counselor.name}` },
-        },
-        quantity: 1,
-      }],
-      success_url: `${process.env.FRONTEND_URL}/payment-success?bookingId=${booking._id}`,
-      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
-      metadata: { bookingId: booking._id.toString() },
-    });
-
-    // Send pre-payment email
-    await sendBookingEmails({
-      clientEmail: client.email,
-      clientName: client.name,
-      counselorEmail: counselor.email,
-      counselorName: counselor.name,
-      booking,
-      prePayment: true,
-      sessionType,
-    });
-
-    res.json({ message: "Booking created", checkoutUrl: session.url, booking });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// --------------------
-// STRIPE WEBHOOK
-// --------------------
-export const stripeWebhook = async (req, res) => {
-  try {
-    const event = req.body;
-
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      const bookingId = session.metadata.bookingId;
-
-      const booking = await Booking.findById(bookingId).populate("clientId counselorId");
-      if (!booking) return res.json({ received: true });
-
-      // Mark booking as paid & confirmed
-      booking.paymentStatus = "paid";
-      booking.status = "confirmed";
-
-      // Create Stream video room after payment
-      const { callId, meetLink } = await createVideoRoom();
-      booking.roomId = callId;
-      booking.meetLink = meetLink;
-
-      await booking.save();
-
-      // Record payment history
-      await PaymentHistory.create({
-        user: booking.counselorId._id,
-        booking: booking._id,
-        amount: booking.amount,
-        currency: "LKR",
-        status: "paid",
-      });
-
-      // Send post-payment emails
-      await sendBookingEmails({
-        clientEmail: booking.clientId.email,
-        clientName: booking.clientId.name,
-        counselorEmail: booking.counselorId.email,
-        counselorName: booking.counselorId.name,
-        booking,
-        prePayment: false,
-        sessionType: booking.sessionType,
-        meetLink,
-        chatRoom: booking.roomId,
-      });
+    // 1) Validate users
+    const client = await User.findById(clientId);
+    const counselor = await User.findById(counselorId);
+    if (!client || !counselor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Client or counselor not found" });
     }
 
-    res.json({ received: true });
+    // 2) Compute start & end DateTime for this requested session
+    const minutes = durationMin || 60;
+    const startDateTime = new Date(`${date}T${time}:00`);
+    const endDateTime = new Date(startDateTime.getTime() + minutes * 60000);
+
+    // 3) Check for overlapping bookings for this counselor
+    //    Condition: existing.start < new.end && existing.end > new.start
+    //    Include both "pending" (reservation) and "paid" (confirmed) bookings.
+
+    
+    // const overlappingBooking = await Booking.findOne({
+    //   counselorId,
+    //   status: { $in: ["pending", "paid"] },
+    //   startDateTime: { $lt: endDateTime },
+    //   endDateTime: { $gt: startDateTime },
+    // });
+
+    // if (overlappingBooking) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message:
+    //       "This counselor already has a booking that overlaps with the selected time. Please choose another slot.",
+    //   });
+    // }
+
+    // 4) Calculate amount based on duration (hourly rate * hours)
+    const hourlyRate = counselor.pricePerSession || 1000; // Rs.1000 default
+    const durationHours = minutes / 60;
+    const amount = Math.round(hourlyRate * durationHours);
+
+    // 5) Generate links
+    const dummyMeetLink =
+      sessionType === "video"
+        ? `https://meet.google.com/dummy-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 9)}`
+        : null;
+    const chatRoom =
+      sessionType === "chat" ? `${counselorId}_${clientId}` : null;
+
+    // 6) Create booking with status "pending"
+    const booking = new Booking({
+      clientId,
+      counselorId,
+      date,
+      time,
+      durationMin: minutes,
+      notes,
+      amount,
+      sessionType,
+      meetLink: dummyMeetLink,
+      chatRoom,
+      status: "pending",
+      paymentStatus: "pending",
+      startDateTime,
+      endDateTime,
+    });
+
+    await booking.save();
+
+    // 7) Optional: create Calendar event for video
+    if (sessionType === "video") {
+      try {
+        const startISO = startDateTime.toISOString();
+        const endISO = endDateTime.toISOString();
+
+        const calendarRes = await createCalendarEvent({
+          summary: "HealPeer Video Session",
+          description: notes || "Video counseling session",
+          startDateTimeISO: startISO,
+          endDateTimeISO: endISO,
+          attendees: [client.email, counselor.email],
+        });
+
+        booking.googleEventId = calendarRes.eventId;
+        booking.meetLink =
+          calendarRes.meetLink || calendarRes.htmlLink || dummyMeetLink;
+        booking.calendarCreated = true;
+        await booking.save();
+      } catch (err) {
+        console.error("Calendar creation failed:", err);
+      }
+    }
+
+    // 8) Pre-payment email
+    try {
+      await sendBookingEmails({
+        clientEmail: client.email,
+        clientName: client.name,
+        counselorEmail: counselor.email,
+        counselorName: counselor.name,
+        meetLink: booking.meetLink,
+        booking,
+        prePayment: true,
+        sessionType,
+        chatRoom,
+      });
+    } catch (err) {
+      console.error("Email sending failed:", err);
+    }
+
+    return res.status(201).json({ success: true, booking });
   } catch (err) {
-    console.error("Webhook Error:", err.message);
-    res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error("createBooking error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// --------------------
-// GET BOOKINGS FOR CLIENT
-// --------------------
-export const getBookingsForClient = async (req, res) => {
+export const getAllBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find()
+      .populate("clientId", "name email")
+      .populate("counselorId", "name email")
+      .sort({ createdAt: -1 });
+    res.json({ success: true, bookings });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET BOOKING BY ID
+export const getBookingById = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate("clientId", "name email")
+      .populate("counselorId", "name email");
+
+    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+    res.json({ success: true, booking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+// GET BOOKING BY STRIPE SESSION ID
+export const getBookingBySession = async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ stripeSessionId: req.params.sessionId })
+      .populate("clientId counselorId");
+
+    if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+    res.json({ success: true, booking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+/** Get active bookings for chat functionality */
+export const getActiveBookingsForChat = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const now = new Date();
+    
+    // Find bookings where user is either client or counselor, payment is completed,
+    // and the session time is within the next 30 minutes or has started within the last hour
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60000);
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60000);
+    
+    const bookings = await Booking.find({
+      $and: [
+        {
+          $or: [
+            { clientId: userId },
+            { counselorId: userId }
+          ]
+        },
+        { status: "paid" },
+        {
+          $expr: {
+            $and: [
+              { $gte: [{ $toDate: { $concat: ["$date", "T", "$time", ":00"] } }, thirtyMinutesAgo] },
+              { $lte: [{ $toDate: { $concat: ["$date", "T", "$time", ":00"] } }, oneHourFromNow] }
+            ]
+          }
+        }
+      ]
+    })
+    .populate("clientId", "name email")
+    .populate("counselorId", "name email")
+    .sort({ date: 1, time: 1 });
+
+    res.json({ success: true, bookings });
+  } catch (err) {
+    console.error("Error fetching active bookings:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+// GET BOOKINGS BY CLIENT (paid or pending via ?status=)
+// GET BOOKINGS BY CLIENT (paid or pending via ?status=)
+export const getClientBookings = async (req, res) => {
   try {
     const { clientId } = req.params;
-    const bookings = await Booking.find({ clientId })
-      .populate("counselorId")
-      .sort({ date: 1 });
-    res.json({ bookings });
+    const { status } = req.query; // "pending" | "paid" | undefined
+
+    const filter = { clientId };
+
+    if (status === "pending") {
+      // only pending bookings
+      filter.status = "pending";
+    } else {
+      // default: fully paid bookings
+      filter.status = "paid";
+      filter.paymentStatus = "completed";
+    }
+
+    const bookings = await Booking.find(filter)
+      .populate("clientId", "name email")
+      .populate("counselorId", "name email")
+      .sort({ date: 1, time: 1 });
+
+    // ✅ always 200, even if empty
+    return res.json({
+      success: true,
+      bookings: bookings || [],
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("getClientBookings error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// --------------------
-// GET BOOKINGS FOR COUNSELOR
-// --------------------
-export const getBookingsForCounselor = async (req, res) => {
+// GET BOOKINGS BY COUNSELOR (paid or pending via ?status=)
+// GET BOOKINGS BY COUNSELOR (paid or pending via ?status=)
+export const getCounselorBookings = async (req, res) => {
   try {
     const { counselorId } = req.params;
-    const bookings = await Booking.find({ counselorId })
-      .populate("clientId")
-      .sort({ date: 1 });
-    res.json({ bookings });
+    const { status } = req.query;
+
+    const filter = { counselorId };
+
+    if (status === "pending") {
+      filter.status = "pending";
+    } else {
+      filter.status = "paid";
+      filter.paymentStatus = "completed";
+    }
+
+    const bookings = await Booking.find(filter)
+      .populate("clientId", "name email")
+      .populate("counselorId", "name email")
+      .sort({ date: 1, time: 1 });
+
+    return res.json({
+      success: true,
+      bookings: bookings || [],
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("getCounselorBookings error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
+
+
+
+
+
+
+
+// // controllers/bookingController.js
+// import User from "../models/User.js";
+// import Booking from "../models/Booking.js";
+// import { sendBookingEmails } from "../utils/email.js";
+// import { createCalendarEvent } from "../utils/googleCalendar.js";
+// import { streamClient } from "../config/streamVideo.js";
+
+
+// // controllers/bookingController.js
+
+// export const createBooking = async (req, res) => {
+//   try {
+//     const {
+//       clientId,
+//       counselorId,
+//       date,
+//       time,
+//       durationMin = 60,
+//       notes,
+//       sessionType,
+//     } = req.body;
+
+//     // 1) Validate users
+//     const client = await User.findById(clientId);
+//     const counselor = await User.findById(counselorId);
+//     if (!client || !counselor) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Client or counselor not found" });
+//     }
+
+//     if (!date || !time) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Date and time are required" });
+//     }
+
+//     // 2) Compute start & end DateTime for this requested session
+//     const minutes = parseInt(durationMin, 10) || 60;
+//     const startDateTime = new Date(`${date}T${time}:00`);
+//     const endDateTime = new Date(startDateTime.getTime() + minutes * 60000);
+
+//     // 3) Overlap check: same counselor, time overlapping, status pending or paid
+//     const overlappingBooking = await Booking.findOne({
+//       counselorId,
+//       status: { $in: ["pending", "paid"] },
+//       startDateTime: { $lt: endDateTime },
+//       endDateTime: { $gt: startDateTime },
+//     });
+
+//     if (overlappingBooking) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "This counselor already has a booking that overlaps with the selected time. Please choose another slot.",
+//       });
+//     }
+
+//     // 4) Calculate amount based on counselor's hourly rate and duration
+//     const hourlyRate = counselor.pricePerSession || 1000; // Rs.1000 default
+//     const durationHours = minutes / 60;
+//     const amount = Math.round(hourlyRate * durationHours);
+
+//     // 5) Create booking object (pending until payment)
+//     const booking = new Booking({
+//       clientId,
+//       counselorId,
+//       date,
+//       time,
+//       durationMin: minutes,
+//       notes,
+//       amount,
+//       sessionType,
+//       status: "pending",
+//       paymentStatus: "pending",
+//       startDateTime,
+//       endDateTime,
+//     });
+
+//     // 6) Create Stream Video call for this booking if it's a video session
+//     if (sessionType === "video" && streamClient) {
+//       try {
+//         const callId = booking._id.toString();
+//         const call = streamClient.video.call("default", callId);
+    
+//         await call.getOrCreate({
+//           created_by_id: counselor._id.toString(),
+//           members: [
+//             { user_id: client._id.toString(), role: "user" },
+//             { user_id: counselor._id.toString(), role: "user" },
+//           ],
+//         });
+    
+//         booking.meetLink = `${process.env.FRONTEND_URL}/video/${callId}`;
+//       } catch (err) {
+//         console.error("Stream Video call creation failed:", err);
+//       }
+//     } else if (sessionType === "chat") {
+//       booking.chatRoom = `${counselorId}_${clientId}`;
+//     }
+
+//     await booking.save();
+
+  
+//     // 8) Send pre-payment email with meetLink (Stream URL)
+//     try {
+//       await sendBookingEmails({
+//         clientEmail: client.email,
+//         clientName: client.name,
+//         counselorEmail: counselor.email,
+//         counselorName: counselor.name,
+//         meetLink: booking.meetLink, // this is your /video/:bookingId URL
+//         booking,
+//         prePayment: true,
+//         sessionType,
+//         chatRoom: booking.chatRoom,
+//       });
+//     } catch (err) {
+//       console.error("Email sending failed:", err);
+//     }
+
+//     return res.status(201).json({ success: true, booking });
+//   } catch (err) {
+//     console.error("createBooking error:", err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// export const getAllBookings = async (req, res) => {
+//   try {
+//     const bookings = await Booking.find()
+//       .populate("clientId", "name email")
+//       .populate("counselorId", "name email")
+//       .sort({ createdAt: -1 });
+//     res.json({ success: true, bookings });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // GET BOOKING BY ID
+// export const getBookingById = async (req, res) => {
+//   try {
+//     const booking = await Booking.findById(req.params.id)
+//       .populate("clientId", "name email")
+//       .populate("counselorId", "name email");
+
+//     if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+//     res.json({ success: true, booking });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+
+
+// // GET BOOKING BY STRIPE SESSION ID
+// export const getBookingBySession = async (req, res) => {
+//   try {
+//     const booking = await Booking.findOne({ stripeSessionId: req.params.sessionId })
+//       .populate("clientId counselorId");
+
+//     if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+//     res.json({ success: true, booking });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+
+// /** Get active bookings for chat functionality */
+// export const getActiveBookingsForChat = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const now = new Date();
+    
+//     // Find bookings where user is either client or counselor, payment is completed,
+//     // and the session time is within the next 30 minutes or has started within the last hour
+//     const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60000);
+//     const oneHourFromNow = new Date(now.getTime() + 60 * 60000);
+    
+//     const bookings = await Booking.find({
+//       $and: [
+//         {
+//           $or: [
+//             { clientId: userId },
+//             { counselorId: userId }
+//           ]
+//         },
+//         { status: "paid" },
+//         {
+//           $expr: {
+//             $and: [
+//               { $gte: [{ $toDate: { $concat: ["$date", "T", "$time", ":00"] } }, thirtyMinutesAgo] },
+//               { $lte: [{ $toDate: { $concat: ["$date", "T", "$time", ":00"] } }, oneHourFromNow] }
+//             ]
+//           }
+//         }
+//       ]
+//     })
+//     .populate("clientId", "name email")
+//     .populate("counselorId", "name email")
+//     .sort({ date: 1, time: 1 });
+
+//     res.json({ success: true, bookings });
+//   } catch (err) {
+//     console.error("Error fetching active bookings:", err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+
+
+// // GET BOOKINGS BY CLIENT (paid or pending via ?status=)
+// // GET BOOKINGS BY CLIENT (paid or pending via ?status=)
+// export const getClientBookings = async (req, res) => {
+//   try {
+//     const { clientId } = req.params;
+//     const { status } = req.query; // "pending" | "paid" | undefined
+
+//     const filter = { clientId };
+
+//     if (status === "pending") {
+//       // only pending bookings
+//       filter.status = "pending";
+//     } else {
+//       // default: fully paid bookings
+//       filter.status = "paid";
+//       filter.paymentStatus = "completed";
+//     }
+
+//     const bookings = await Booking.find(filter)
+//       .populate("clientId", "name email")
+//       .populate("counselorId", "name email")
+//       .sort({ date: 1, time: 1 });
+
+//     // ✅ always 200, even if empty
+//     return res.json({
+//       success: true,
+//       bookings: bookings || [],
+//     });
+//   } catch (err) {
+//     console.error("getClientBookings error:", err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // GET BOOKINGS BY COUNSELOR (paid or pending via ?status=)
+// // GET BOOKINGS BY COUNSELOR (paid or pending via ?status=)
+// export const getCounselorBookings = async (req, res) => {
+//   try {
+//     const { counselorId } = req.params;
+//     const { status } = req.query;
+
+//     const filter = { counselorId };
+
+//     if (status === "pending") {
+//       filter.status = "pending";
+//     } else {
+//       filter.status = "paid";
+//       filter.paymentStatus = "completed";
+//     }
+
+//     const bookings = await Booking.find(filter)
+//       .populate("clientId", "name email")
+//       .populate("counselorId", "name email")
+//       .sort({ date: 1, time: 1 });
+
+//     return res.json({
+//       success: true,
+//       bookings: bookings || [],
+//     });
+//   } catch (err) {
+//     console.error("getCounselorBookings error:", err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+
+

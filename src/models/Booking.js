@@ -1,57 +1,42 @@
 
 
-
-// // src/models/Booking.js
-// import mongoose from "mongoose";
-
-// const bookingSchema = new mongoose.Schema({
-//   clientId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-//   counselorId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
-//   date: { type: String, required: true }, // keep as string for simplicity
-//   time: { type: String, required: true },
-
-//   durationMin: { type: Number, default: 60 },
-//   priceLKR: { type: Number, required: true },
-
-//   // meetLink saved after payment (object with client/counselor urls)
-//   meetLink: {
-//     client: { type: String, default: null },
-//     counselor: { type: String, default: null },
-//   },
-
-//   roomId: { type: String, default: null },
-
-//   // payment & booking status
-//   paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
-//   status: { type: String, enum: ["pending", "confirmed", "cancelled", "completed"], default: "pending" },
-
-// }, { timestamps: true });
-
-// export default mongoose.model("Booking", bookingSchema);
-
+// models/Booking.js
 import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema({
-  client: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  counselor: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-
-  date: { type: String, required: true },
-  time: { type: String, required: true },
-
-  durationMin: { type: Number, default: 60 },
-  amount: { type: Number, required: true }, // total session amount in LKR
-
-  meetLink: {
-    client: { type: String, default: null },
-    counselor: { type: String, default: null },
+  clientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
   },
-  roomId: { type: String, default: null },
+  counselorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
 
-  paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
-  status: { type: String, enum: ["pending", "confirmed", "cancelled", "completed"], default: "pending" },
-  notes: { type: String, default: "" }
+  date: { type: String, required: true },   // "YYYY-MM-DD"
+  time: { type: String, required: true },   // "HH:MM"
+  durationMin: { type: Number, default: 60 },
 
-}, { timestamps: true });
+  amount: { type: Number, required: true },
+  sessionType:["video","chat"],
+  status: {
+    type: String,
+    enum: ["pending", "paid", "cancelled", "completed"],
+    default: "pending",
+  },
+  paymentStatus: { type: String, default: "pending" }, // "pending" | "completed" ...
 
-export default mongoose.model("Booking", bookingSchema);
+  paidAmount: Number,
+  paidAt: Date,
+
+  // NEW: exact timestamps for overlap checking
+  startDateTime: { type: Date }, // session start
+  endDateTime: { type: Date },   // session end
+
+  // ... existing fields (meetLink, chatRoom, googleEventId, etc.)
+});
+
+const Booking = mongoose.model("Booking", bookingSchema);
+export default Booking;

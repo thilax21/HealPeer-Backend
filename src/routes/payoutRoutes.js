@@ -4,7 +4,9 @@ import {
   processPayout,
   getPayoutHistory,
   getCounselorPayoutSummary,
-  getAdminDashboardStats
+  getAdminDashboardStats,
+  getAdminYearlyStats,       
+
 } from "../controllers/payoutController.js";
 import { protect, adminOnly } from "../middlewares/authMiddleware.js";
 
@@ -25,4 +27,6 @@ router.get("/dashboard-stats", protect, adminOnly, getAdminDashboardStats);
 // Counselor routes - get individual counselor payout summary
 router.get("/summary/:counselorId", protect, getCounselorPayoutSummary);
 
+// Admin routes - get yearly dashboard stats
+router.get("/yearly-stats", protect, adminOnly, getAdminYearlyStats);
 export default router;

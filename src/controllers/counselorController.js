@@ -138,3 +138,58 @@ export const getCounselorById = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const updateCounselorProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Only the logged-in counselor themself or an admin can update
+    const authId = req.user?._id?.toString();
+    const isAdmin = req.user?.role === "admin";
+    if (!authId) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
+    }
+    if (authId !== id && !isAdmin) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Not allowed to edit this profile" });
+    }
+
+    const allowedFields = [
+      "profileImage",
+      "bio",
+      "specialization",
+      "experience",
+      "contactNumber",
+      "pricePerSession",
+      "timezone",
+    ];
+
+    const updates = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    const user = await User.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Counselor not found" });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    console.error("updateCounselorProfile error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update counselor profile" });
+  }
+};

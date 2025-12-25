@@ -10,16 +10,6 @@ export const getMyProfile = async (req, res) => {
   }
 };
 
-// Update my profile
-// export const updateMyProfile = async (req, res) => {
-//   try {
-//     const updates = req.body;
-//     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select("-password");
-//     res.status(200).json({ success: true, data: user });
-//   } catch (error) {
-//     res.status(500).json({ success: false, message: error.message });
-//   }
-// };
 
 export const updateMyProfile = async (req, res) => {
   try {
