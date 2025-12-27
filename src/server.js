@@ -35,7 +35,7 @@ app.post(
 
 
 app.use(cors({
-  origin:  "https://final-project-healpeer.vercel.app/",  // your frontend
+  origin:  "https://final-project-healpeer.vercel.app",  // your frontend
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
