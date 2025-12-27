@@ -35,7 +35,7 @@ app.post(
 
 
 app.use(cors({
-  origin:  "*",  // your frontend
+  origin:  "https://final-project-healpeer.vercel.app/",  // your frontend
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -69,43 +69,6 @@ app.use("/api/availability", availabilityRoutes);
 
 
 
-// // Socket.io connection handling
-// io.on("connection", (socket) => {
-//   console.log("User connected:", socket.id);
-
-//   socket.on("join_room", (room) => {
-//     socket.join(room);
-//     console.log(`User ${socket.id} joined room ${room}`);
-//   });
-
-//   socket.on("send_message", async (data) => {
-//     const { room, senderId, message } = data;
-    
-//     // Save message to database
-//     try {
-//       const chatMessage = new ChatMessage({
-//         room,
-//         senderId,
-//         message,
-//         createdAt: new Date()
-//       });
-//       await chatMessage.save();
-      
-//       // Send message to room
-//       io.to(room).emit("receive_message", {
-//         senderId,
-//         message,
-//         createdAt: chatMessage.createdAt
-//       });
-//     } catch (error) {
-//       console.error("Error saving message:", error);
-//     }
-//   });
-
-//   socket.on("disconnect", () => {
-//     console.log("User disconnected:", socket.id);
-//   });
-// });
 
 
 
