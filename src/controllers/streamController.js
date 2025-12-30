@@ -59,15 +59,29 @@ export const getStreamTokenForBooking = async (req, res) => {
     if (booking.startDateTime && booking.endDateTime) {
       start = new Date(booking.startDateTime);
       end = new Date(booking.endDateTime);
-    } else if (booking.date && booking.time) {
-      // Build from date + time + durationMin
-      const [year, month, day] = booking.date.split("-");
-      const [hour, minute] = booking.time.split(":");
-      start = new Date(year, month - 1, day, hour, minute);
+    // } else if (booking.date && booking.time) {
+    //   // Build from date + time + durationMin
+    //   const [year, month, day] = booking.date.split("-");
+    //   const [hour, minute] = booking.time.split(":");
+    //   start = new Date(year, month - 1, day, hour, minute);
 
-      const duration = booking.durationMin || 60;
-      end = new Date(start.getTime() + duration * 60 * 1000);
-    } else {
+    //   const duration = booking.durationMin || 60;
+    //   end = new Date(start.getTime() + duration * 60 * 1000);
+    // } 
+  } else if (booking.date && booking.time) {
+    // Old:
+    // const [year, month, day] = booking.date.split("-");
+    // const [hour, minute] = booking.time.split(":");
+    // start = new Date(year, month - 1, day, hour, minute);
+  
+    // New: treat stored time as IST explicitly
+    const iso = `${booking.date}T${booking.time}:00+05:30`; // +05:30 = IST
+    start = new Date(iso);
+  
+    const duration = booking.durationMin || 60;
+    end = new Date(start.getTime() + duration * 60 * 1000);
+  }
+    else {
       // If no date/time info, skip time restrictions (optional)
       console.warn(
         "Booking has no date/time info, skipping time window check for",
